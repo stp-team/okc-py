@@ -53,7 +53,9 @@ async def get_csrf(session: ClientSession, base_url: str) -> str:
     return csrf_token
 
 
-async def authenticate(username: str, password: str, session: ClientSession, base_url: str) -> bool:
+async def authenticate(
+    username: str, password: str, session: ClientSession, base_url: str
+) -> bool:
     """Производит авторизацию и возвращает сессию.
 
     Args:
