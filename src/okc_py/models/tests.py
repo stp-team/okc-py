@@ -1,12 +1,29 @@
 from pydantic import BaseModel, Field
 
 
-class Theme(BaseModel):
+class TestCategory(BaseModel):
+    """Модель категории тестов."""
+
+    id: str = Field(description="Идентификатор категории")
+    name: str = Field(description="Название категории")
+
+
+class TestTheme(BaseModel):
     """Модель темы теста."""
 
     id: str = Field(description="Идентификатор темы")
     name: str = Field(description="Название темы")
     question_count: int = Field(description="Количество вопросов в теме")
+
+
+class TestDetailedTheme(BaseModel):
+    """Детальная модель темы с категориями."""
+
+    id: str = Field(description="Идентификатор темы")
+    name: str = Field(description="Название темы")
+    description: str | None = Field(description="Описание темы")
+    question_count: int = Field(description="Количество вопросов в теме")
+    categories: list[str] = Field(description="Список идентификаторов категорий")
 
 
 class Test(BaseModel):
@@ -17,10 +34,12 @@ class Test(BaseModel):
     description: str | None = Field(description="Описание теста")
     success_percent: int = Field(description="Процент успешного прохождения")
     lifetime_days: int = Field(description="Время жизни теста в днях")
-    time_limit_type_id: int = Field(description="Идентификатор типа ограничения времени")
+    time_limit_type_id: int = Field(
+        description="Идентификатор типа ограничения времени"
+    )
     time_limit_value: int = Field(description="Значение ограничения времени")
     time_limit_description: str = Field(description="Описание ограничения времени")
-    themes: list[Theme] = Field(description="Список тем теста")
+    themes: list[TestTheme] = Field(description="Список тем теста")
 
 
 class AssignedTest(BaseModel):

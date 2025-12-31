@@ -4,7 +4,7 @@ from urllib.parse import urlencode
 from pydantic import TypeAdapter
 
 from ..config import Settings
-from ..models.tests import AssignedTest, Test
+from ..models.tests import AssignedTest, Test, TestDetailedTheme, TestCategory
 from .base import BaseAPI
 
 
@@ -78,5 +78,35 @@ class TestsAPI(BaseAPI):
             tests = assigned_tests_adapter.validate_python(data)
             return tests
         except Exception as e:
-            self.logger.error(f"Error parsing tests response: {e}")
+            self.logger.error(f"Error parsing assigned tests: {e}")
+            return None
+
+    async def get_themes(self) -> list[TestDetailedTheme] | None:
+        themes_adapter = TypeAdapter(list[TestDetailedTheme])
+
+        response = await self.post(
+            f"{self.service_url}/get-themes",
+        )
+
+        try:
+            data = await response.json()
+            themes = themes_adapter.validate_python(data)
+            return themes
+        except Exception as e:
+            self.logger.error(f"Error parsing themes: {e}")
+            return None
+
+    async def get_categories(self) -> list[TestCategory] | None:
+        categories_adapter = TypeAdapter(list[TestCategory])
+
+        response = await self.post(
+            f"{self.service_url}/get-categories",
+        )
+
+        try:
+            data = await response.json()
+            categories = categories_adapter.validate_python(data)
+            return categories
+        except Exception as e:
+            self.logger.error(f"Error parsing categories response: {e}")
             return None
