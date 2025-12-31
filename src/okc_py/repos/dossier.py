@@ -1,8 +1,8 @@
 from loguru import logger
 
-from src.okc_py.models.dossier import Employee, EmployeeData
-from src.okc_py.repos.base import BaseAPI
-from src.okc_py.config import Settings
+from ..models.dossier import Employee, EmployeeData
+from .base import BaseAPI
+from ..config import Settings
 from pydantic import TypeAdapter
 
 

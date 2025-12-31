@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.14"
 
 authors = [
-    {name = "Roman Chursanov", email = "roman@chrsnv.ru"}
+    { name = "Roman Chursanov", email = "roman@chrsnv.ru" }
 ]
 
 dependencies = [
@@ -14,7 +14,6 @@ dependencies = [
     "loguru>=0.7.3",
     "pydantic>=2.12.5",
     "pydantic-settings>=2.12.0",
-    "setuptools>=80.9.0",
 ]
 
 [project.urls]
