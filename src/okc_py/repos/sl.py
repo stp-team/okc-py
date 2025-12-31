@@ -40,7 +40,7 @@ class SlAPI(BaseAPI):
 
         Args:
             start_date: День начала периода
-            stop_date: День окончания периода
+            stop_date: День конца периода
             units: Идентификатор(ы) направлений
             queues: Идентификаторы линий
 

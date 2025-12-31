@@ -218,7 +218,7 @@ class UreAPI(BaseAPI):
             division: Направление специалиста
             report: Тип отчета
             start_date: Дата начала периода
-            end_date: Дата окончания периода (если None, то текущая дата)
+            end_date: Дата конца периода (если None, то текущая дата)
             use_week_period: Если True, использует конец текущей недели как end_date
 
         Returns:
