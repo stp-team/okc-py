@@ -4,7 +4,7 @@ from urllib.parse import urlencode
 from pydantic import TypeAdapter
 
 from ..config import Settings
-from ..models.tests import AssignedTest
+from ..models.tests import AssignedTest, Test
 from .base import BaseAPI
 
 
@@ -13,6 +13,21 @@ class TestsAPI(BaseAPI):
         super().__init__(session, settings)
         self.service_url = "testing/api"
         self.logger = logging.getLogger(self.__class__.__name__)
+
+    async def get_tests(self) -> list[Test] | None:
+        tests_adapter = TypeAdapter(list[Test])
+
+        response = await self.post(
+            f"{self.service_url}/get-tests",
+        )
+
+        try:
+            data = await response.json()
+            tests = tests_adapter.validate_python(data)
+            return tests
+        except Exception as e:
+            self.logger.error(f"Error parsing tests response: {e}")
+            return None
 
     async def get_assigned_tests(
         self, start_date: str, stop_date: str, subdivisions: list[int] | None = None
