@@ -6,6 +6,7 @@ from loguru import logger
 
 from .auth import authenticate
 from .config import Settings
+from .repos import SlAPI
 from .repos.dossier import DossierAPI
 from .repos.ure import UreAPI
 
@@ -25,6 +26,7 @@ class Client:
         self._authenticated = False
         self.dossier: Optional[DossierAPI] = None
         self.ure: Optional[UreAPI] = None
+        self.sl: Optional[SlAPI] = None
 
     async def __aenter__(self):
         """Async context manager entry - creates session and authenticates."""
@@ -52,6 +54,7 @@ class Client:
             self._authenticated = True
             self.dossier = DossierAPI(self._session, self.settings)
             self.ure = UreAPI(self._session, self.settings)
+            self.sl = SlAPI(self._session, self.settings)
             logger.info("Successfully authenticated with OKC API")
         except Exception as e:
             await self._session.close()
