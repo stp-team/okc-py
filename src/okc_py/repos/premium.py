@@ -2,16 +2,16 @@ import logging
 
 from loguru import logger
 
-from ..config import Settings
-from ..models.premium import SpecialistPremiumResponse, HeadPremiumResponse
+from ..client import Client
+from ..models.premium import HeadPremiumResponse, SpecialistPremiumResponse
 from .base import BaseAPI
 
 
 class PremiumAPI(BaseAPI):
     """Взаимодействия с API URE."""
 
-    def __init__(self, session, settings: Settings):
-        super().__init__(session, settings)
+    def __init__(self, client: Client):
+        super().__init__(client)
         self.service_url = "premium"
         self.logger = logging.getLogger(self.__class__.__name__)
 

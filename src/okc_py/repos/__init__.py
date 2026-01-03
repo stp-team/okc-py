@@ -7,4 +7,4 @@ from .tests import TestsAPI
 from .tutors import TutorsAPI
 from .ure import UreAPI
 
-__all__ = ["DossierAPI", "PremiumAPI", "UreAPI", "SlAPI", "TutorsAPI", "TestsAPI"]
+__all__ = ["DossierAPI", "PremiumAPI", "SlAPI", "TestsAPI", "TutorsAPI", "UreAPI"]

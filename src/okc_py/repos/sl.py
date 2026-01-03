@@ -2,16 +2,16 @@ import logging
 
 from loguru import logger
 
+from ..client import Client
+from ..models.sl import ReportData, SlRootModel
 from .base import BaseAPI
-from ..config import Settings
-from ..models.sl import SlRootModel, ReportData
 
 
 class SlAPI(BaseAPI):
     """Взаимодействия с API SL."""
 
-    def __init__(self, session, settings: Settings):
-        super().__init__(session, settings)
+    def __init__(self, client: Client):
+        super().__init__(client)
         self.service_url = "genesys/ntp"
         self.logger = logging.getLogger(self.__class__.__name__)
 

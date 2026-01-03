@@ -1,21 +1,21 @@
 """Data models for OKC API."""
 
 from .dossier import Employee, EmployeeData
-from .premium import SpecialistPremiumResponse, HeadPremiumResponse
-from .ure import TypedKPIResponse
+from .premium import HeadPremiumResponse, SpecialistPremiumResponse
 from .sl import ReportData, SlRootModel
-from .tutors import TutorGraphResponse, GraphFiltersResponse
 from .tests import AssignedTest
+from .tutors import GraphFiltersResponse, TutorGraphResponse
+from .ure import TypedKPIResponse
 
 __all__ = [
+    "AssignedTest",
     "Employee",
     "EmployeeData",
-    "SpecialistPremiumResponse",
+    "GraphFiltersResponse",
     "HeadPremiumResponse",
-    "TypedKPIResponse",
     "ReportData",
     "SlRootModel",
+    "SpecialistPremiumResponse",
     "TutorGraphResponse",
-    "GraphFiltersResponse",
-    "AssignedTest",
+    "TypedKPIResponse",
 ]

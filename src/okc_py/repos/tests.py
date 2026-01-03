@@ -3,22 +3,22 @@ from urllib.parse import urlencode
 from loguru import logger
 from pydantic import TypeAdapter
 
-from ..config import Settings
+from ..client import Client
 from ..models.tests import (
     AssignedTest,
     Test,
-    TestDetailedTheme,
     TestCategory,
-    TestsUser,
-    TestsSupervisor,
+    TestDetailedTheme,
     TestsSubdivision,
+    TestsSupervisor,
+    TestsUser,
 )
 from .base import BaseAPI
 
 
 class TestsAPI(BaseAPI):
-    def __init__(self, session, settings: Settings):
-        super().__init__(session, settings)
+    def __init__(self, client: Client):
+        super().__init__(client)
         self.service_url = "testing/api"
 
     async def get_tests(self) -> list[Test] | None:

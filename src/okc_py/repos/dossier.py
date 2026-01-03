@@ -1,16 +1,16 @@
 from loguru import logger
+from pydantic import TypeAdapter
 
+from ..client import Client
 from ..models.dossier import Employee, EmployeeData
 from .base import BaseAPI
-from ..config import Settings
-from pydantic import TypeAdapter
 
 
 class DossierAPI(BaseAPI):
     """Взаимодействия с API профайла."""
 
-    def __init__(self, session, settings: Settings):
-        super().__init__(session, settings)
+    def __init__(self, client: Client):
+        super().__init__(client)
         self.service_url = "dossier"
 
     async def get_employees(self, exclude_fired: bool = False) -> list[Employee] | None:

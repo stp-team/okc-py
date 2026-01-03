@@ -1,6 +1,9 @@
 import re
 
 from aiohttp import ClientSession
+from loguru import logger
+
+from .exceptions import CSRFError, InvalidCredentialsError
 
 
 def _get_base_headers(base_url: str) -> dict[str, str]:
@@ -40,16 +43,17 @@ async def get_csrf(session: ClientSession, base_url: str) -> str:
     response_text = await response.text()
 
     if response.status != 200:
-        raise RuntimeError(f"Failed to get login page: HTTP {response.status}")
+        raise CSRFError(f"Failed to get login page: HTTP {response.status}")
 
     # Достаем CSRF
     csrf_pattern = r'name=["\']_csrf["\'][^>]*value=["\']([^"\']+)["\']'
     match = re.search(csrf_pattern, response_text)
 
     if not match:
-        raise RuntimeError("Could not find CSRF token in login page")
+        raise CSRFError("Could not find CSRF token in login page")
 
     csrf_token = match.group(1)
+    logger.debug("CSRF token obtained successfully")
     return csrf_token
 
 
@@ -83,6 +87,7 @@ async def authenticate(
 
     # После авторизации идет переход на другую страницу, проверяем на 302 код
     if response.status not in [200, 302]:
-        raise RuntimeError(f"Login failed: HTTP {response.status}")
+        raise InvalidCredentialsError(f"Login failed: HTTP {response.status}")
 
+    logger.info("Successfully authenticated with OKC API")
     return True

@@ -1,17 +1,18 @@
 import logging
+from urllib.parse import urlencode
 
 from loguru import logger
 
+from ..client import Client
+from ..models.tutors import GraphFiltersResponse, TutorGraphResponse
 from .base import BaseAPI
-from ..config import Settings
-from ..models.tutors import TutorGraphResponse, GraphFiltersResponse
 
 
 class TutorsAPI(BaseAPI):
     """Взаимодействия с API наставников."""
 
-    def __init__(self, session, settings: Settings):
-        super().__init__(session, settings)
+    def __init__(self, client: Client):
+        super().__init__(client)
         self.service_url = "tutor-graph/tutor-api"
         self.logger = logging.getLogger(self.__class__.__name__)
 
@@ -37,27 +38,36 @@ class TutorsAPI(BaseAPI):
             picked_shift_types: Список типов смен
             tz: Timezone offset (default: 0)
         """
-        # Prepare form data as a list of tuples to handle multiple values for the same key
-        form_data = [
+        # Prepare form data following the pattern from tests.py
+        form_params = [
             ("tz", str(tz)),
             ("divisionId", str(division_id)),
             ("startDate", start_date),
             ("stopDate", stop_date),
         ]
 
-        # Add array parameters
+        # Add array parameters using [] suffix
         for unit in picked_units:
-            form_data.append(("pickedUnits[]", str(unit)))
+            form_params.append(("pickedUnits[]", str(unit)))
         for tutor_type in picked_tutor_types:
-            form_data.append(("pickedTutorTypes[]", str(tutor_type)))
+            form_params.append(("pickedTutorTypes[]", str(tutor_type)))
         for shift_type in picked_shift_types:
-            form_data.append(("pickedShiftTypes[]", str(shift_type)))
+            form_params.append(("pickedShiftTypes[]", str(shift_type)))
 
-        # Override headers for form data
-        headers = {"Content-Type": "application/x-www-form-urlencoded"}
+        # Encode data as URL-encoded string
+        encoded_data = urlencode(form_params)
+
+        # Headers for form-encoded request
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "X-Requested-With": "XMLHttpRequest",
+            "Accept": "application/json, text/javascript, */*; q=0.01",
+        }
 
         response = await self.post(
-            f"{self.service_url}/get-full-graph", data=form_data, headers=headers
+            f"{self.service_url}/get-full-graph",
+            data=encoded_data.encode("utf-8"),
+            headers=headers,
         )
 
         if response.status != 200:
@@ -65,6 +75,10 @@ class TutorsAPI(BaseAPI):
 
         try:
             data = await response.json()
+            # Log the API response for debugging
+            if "error" in data:
+                logger.error(f"[Tutors] API вернул ошибку: {data}")
+                return None
             tutor_graph = TutorGraphResponse.model_validate(data)
             return tutor_graph
         except Exception as e:

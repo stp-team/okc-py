@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime, timedelta
 
-from ..config import Settings
+from ..client import Client
 from ..misc.helpers import get_week_end_date, time_format
 from ..models.ure import (
     AHTDataRecord,
@@ -61,8 +61,8 @@ class UreAPI(BaseAPI):
         },
     }
 
-    def __init__(self, session, settings: Settings):
-        super().__init__(session, settings)
+    def __init__(self, client: Client):
+        super().__init__(client)
         self.service_url = "ure"
         self.logger = logging.getLogger(self.__class__.__name__)
 
