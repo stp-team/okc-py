@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class QueueItem(BaseModel):
@@ -16,9 +16,12 @@ class SlRootModel(BaseModel):
     ntp_nck: NtpNck
 
 
-class TotalDataItem(BaseModel):
-    text: str
-    value: float
+class TotalData(BaseModel):
+    total_entered: float = Field(alias="Поступило", description="Поступило чатов")
+    total_answered: float = Field(alias="Принято", description="Принято чатов")
+    total_abandoned: float = Field(alias="Пропущено", description="Пропущено чатов")
+    answered_in_sl: float = Field(alias="Принято в SL", description="Принято в SL")
+    answered_percent: float = Field(alias="% Принятых", description="% принятых чатов")
 
 
 class DetailHeader(BaseModel):
@@ -51,5 +54,13 @@ class DetailData(BaseModel):
 
 
 class ReportData(BaseModel):
-    totalData: list[TotalDataItem]
-    detailData: DetailData
+    total_data: TotalData = Field(alias="totalData")
+    detail_data: DetailData = Field(alias="detailData")
+
+    @field_validator("total_data", mode="before")
+    @classmethod
+    def transform_total_data(cls, v: list[dict]) -> dict:
+        """Transform list of text/value pairs into proper object."""
+        if isinstance(v, list):
+            return {item["text"]: item["value"] for item in v}
+        return v
