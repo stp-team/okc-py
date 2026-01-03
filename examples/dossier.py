@@ -9,11 +9,11 @@ async def main():
         employee = await client.dossier.get_employee(
             employee_fullname="Чурсанов Роман Евгеньевич"
         )
-        print(employee)
+        print(f"Employee: {employee}")
 
         # Получить всех сотрудников
         all_employees = await client.dossier.get_employees()
-        print(all_employees)
+        print(f"Employees list: {all_employees}")
 
 
 if __name__ == "__main__":

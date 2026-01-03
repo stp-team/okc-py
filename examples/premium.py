@@ -12,14 +12,14 @@ async def main():
         specialist_premium = await client.premium.get_specialist_premium(
             period=period, division=division, employees_id=["employee_id_here"]
         )
-        print(specialist_premium)
+        print(f"Specialist premium: {specialist_premium}")
 
         # Получить премиум руководителя.
         # Возвращаемый ответ отличается от ответа метода выше
         head_premium = await client.premium.get_head_premium(
             period=period, division=division, employees_id=["employee_id_here"]
         )
-        print(head_premium)
+        print(f"Head premium: {head_premium}")
 
 
 if __name__ == "__main__":

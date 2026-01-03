@@ -118,6 +118,7 @@ class Client:
         url: str,
         params: dict[str, Any] | None = None,
         data: dict[str, Any] | None = None,
+        json: dict[str, Any] | None = None,
         **kwargs,
     ) -> dict[str, Any] | str:
         """Make authenticated request to OKC API.
@@ -127,6 +128,7 @@ class Client:
             url: Complete URL to request
             params: Query parameters
             data: Form data
+            json: JSON data (sets Content-Type: application/json)
             **kwargs: Additional aiohttp parameters
 
         Returns:
@@ -146,12 +148,19 @@ class Client:
         last_exception = None
         for attempt in range(self.settings.MAX_RETRIES + 1):
             try:
-                logger.debug(
-                    f"Making {method} request to {url} (attempt {attempt + 1})"
-                )
+                # Use json parameter if provided, otherwise use data
+                req_kwargs = {"params": params, **kwargs}
+                if json is not None:
+                    req_kwargs["json"] = json
+                    # Ensure proper headers for JSON requests
+                    req_kwargs.setdefault("headers", {})["Accept"] = (
+                        "application/json, text/plain, */*"
+                    )
+                else:
+                    req_kwargs["data"] = data
 
                 async with self._session.request(
-                    method, url, params=params, data=data, **kwargs
+                    method, url, **req_kwargs
                 ) as response:
                     # Check for rate limiting
                     if response.status == 429:
@@ -176,12 +185,10 @@ class Client:
                     # Try to parse JSON response
                     try:
                         result = await response.json()
-                        logger.debug(f"Successful JSON response from {url}")
                         return result
                     except (ValueError, aiohttp.ContentTypeError):
                         # Return text if not JSON
                         result = await response.text()
-                        logger.debug(f"Successful text response from {url}")
                         return result
 
             except ClientError as e:

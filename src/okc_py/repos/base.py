@@ -77,8 +77,6 @@ class BaseAPI:
         """
         url = self._build_url(endpoint)
 
-        logger.debug(f"Making {method} request to {endpoint}")
-
         return await self.client.request(
             method, url, params=params, data=data, **kwargs
         )
@@ -147,18 +145,16 @@ class BaseAPI:
             **kwargs: Additional arguments
         """
         url = self._build_url(endpoint)
-        logger.debug(f"POST request to: {url}")
 
-        # Handle json parameter (convert to data for client.request)
+        # Use json parameter for client.request
         if json is not None:
-            result = await self.client.request("POST", url, data=json, **kwargs)
+            result = await self.client.request("POST", url, json=json, **kwargs)
         else:
             result = await self.client.request("POST", url, data=data, **kwargs)
 
         # Log if response looks like HTML (error page)
         if isinstance(result, str) and result.strip().startswith("<!DOCTYPE html>"):
             logger.warning(f"Received HTML response instead of JSON from {url}")
-            logger.debug(f"HTML response (first 500 chars): {result[:500]}")
 
         return _ResponseWrapper(result)
 

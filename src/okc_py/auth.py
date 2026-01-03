@@ -52,9 +52,7 @@ async def get_csrf(session: ClientSession, base_url: str) -> str:
     if not match:
         raise CSRFError("Could not find CSRF token in login page")
 
-    csrf_token = match.group(1)
-    logger.debug("CSRF token obtained successfully")
-    return csrf_token
+    return match.group(1)
 
 
 async def authenticate(
@@ -73,8 +71,10 @@ async def authenticate(
     """
     csrf_token = await get_csrf(session=session, base_url=base_url)
 
-    session.headers.update({"Content-Type": "application/x-www-form-urlencoded"})
-    session.headers.update({"Referer": base_url + "/site/login"})
+    auth_headers = {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Referer": base_url + "/site/login",
+    }
 
     payload = {
         "_csrf": csrf_token,
@@ -83,7 +83,9 @@ async def authenticate(
         "login-button": "",
     }
 
-    response = await session.post(base_url + "/site/login", data=payload)
+    response = await session.post(
+        base_url + "/site/login", data=payload, headers=auth_headers
+    )
 
     # После авторизации идет переход на другую страницу, проверяем на 302 код
     if response.status not in [200, 302]:

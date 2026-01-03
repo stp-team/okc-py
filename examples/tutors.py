@@ -7,6 +7,7 @@ async def main():
     async with OKC(username="YOUR_USERNAME", password="YOUR_PASSWORD") as client:
         # Получить доступные фильтры (для автоматического заполнения следующего запроса
         graph_filters = await client.tutors.get_graph_filters(division_id=2)
+        print(f"Graph filters: {graph_filters}")
 
         # Получить график наставников за промежуток времени
         tutor_graph = await client.tutors.get_full_graph(
@@ -21,7 +22,7 @@ async def main():
                 shift_type.id for shift_type in graph_filters.shift_types
             ],
         )
-        print(tutor_graph)
+        print(f"Tutors schedule: {tutor_graph}")
 
 
 if __name__ == "__main__":
