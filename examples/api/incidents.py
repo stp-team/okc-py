@@ -12,10 +12,10 @@ async def main():
     async with OKC(
         username=os.getenv("OKC_USERNAME"), password=os.getenv("OKC_PASSWORD")
     ) as client:
-        filters = await client.incidents.get_filters()
+        filters = await client.api.incidents.get_filters()
         print(f"Filters: {filters}")
 
-        incidents = await client.incidents.get_incidents(
+        incidents = await client.api.incidents.get_incidents(
             start_date="01.12.2025",
             stop_date="01.01.2026",
         )

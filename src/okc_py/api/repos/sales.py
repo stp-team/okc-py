@@ -1,8 +1,9 @@
 import logging
 from typing import Any
 
-from ..client import Client
-from ..models.sales import SalesFilters, SalesFiltersByDate, SalesReport
+from okc_py.api.models.sales import SalesFilters, SalesFiltersByDate, SalesReport
+from okc_py.client import Client
+
 from .base import BaseAPI
 
 logger = logging.getLogger(__name__)

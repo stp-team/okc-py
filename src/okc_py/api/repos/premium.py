@@ -1,7 +1,8 @@
 import logging
 
-from ..client import Client
-from ..models.premium import HeadPremiumResponse, SpecialistPremiumResponse
+from okc_py.api.models.premium import HeadPremiumResponse, SpecialistPremiumResponse
+from okc_py.client import Client
+
 from .base import BaseAPI
 
 logger = logging.getLogger(__name__)

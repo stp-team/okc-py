@@ -80,6 +80,8 @@ known-first-party = ["okc_py"]
 [tool.uv.workspace]
 members = [
     ".",
+    ".",
+    ".",
 ]
 
 [tool.uv.sources]

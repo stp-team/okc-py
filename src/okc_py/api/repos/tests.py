@@ -3,8 +3,7 @@ from urllib.parse import urlencode
 
 from pydantic import TypeAdapter
 
-from ..client import Client
-from ..models.tests import (
+from okc_py.api.models.tests import (
     AssignedTest,
     Test,
     TestCategory,
@@ -13,6 +12,8 @@ from ..models.tests import (
     TestsSupervisor,
     TestsUser,
 )
+from okc_py.client import Client
+
 from .base import BaseAPI
 
 logger = logging.getLogger(__name__)

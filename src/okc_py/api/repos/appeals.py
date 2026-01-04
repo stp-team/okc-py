@@ -1,13 +1,14 @@
 import logging
 
-from ..client import Client
-from ..models.appeals import (
+from okc_py.api.models.appeals import (
     AppealsByCityResponse,
     AppealsByProblemResponse,
     DetailsByCityResponse,
     DetailsByProblemResponse,
     FiltersResponse,
 )
+from okc_py.client import Client
+
 from .base import BaseAPI
 
 logger = logging.getLogger(__name__)

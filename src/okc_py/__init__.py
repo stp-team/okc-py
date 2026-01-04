@@ -1,5 +1,8 @@
 # Main OKC client
 # Core components (for advanced users)
+# API classes (for advanced users who want direct access)
+from okc_py.api import DossierAPI, PremiumAPI, SlAPI, TestsAPI, TutorsAPI, UreAPI
+
 from .client import Client
 from .config import Settings
 
@@ -18,9 +21,6 @@ from .exceptions import (
     SessionError,
 )
 from .okc import OKC
-
-# API classes (for advanced users who want direct access)
-from .repos import DossierAPI, PremiumAPI, SlAPI, TestsAPI, TutorsAPI, UreAPI
 
 __version__ = "0.1.0"
 

@@ -5,19 +5,154 @@ import logging
 from .client import Client
 from .config import Settings
 from .exceptions import ConfigurationError
-from .repos import DossierAPI, PremiumAPI, SlAPI, TestsAPI, TutorsAPI, UreAPI
-from .repos.appeals import AppealsAPI
-from .repos.incidents import IncidentsAPI
-from .repos.sales import SalesAPI
+from .sockets.repos.lines import LINE_NAMESPACES, LineNamespace, LineWSClient
 
 logger = logging.getLogger(__name__)
+
+
+class _APIRouter:
+    """Router for HTTP API repositories.
+
+    Provides access to all HTTP API repositories.
+    """
+
+    def __init__(self, client: Client):
+        """Initialize API router.
+
+        Args:
+            client: Authenticated OKC API client
+        """
+        self._client = client
+        self._initialized = False
+
+    def _ensure_initialized(self):
+        """Initialize all API repositories if not already done."""
+        if self._initialized:
+            return
+
+        # Import API classes here to avoid circular imports
+        from okc_py.api import (
+            DossierAPI,
+            PremiumAPI,
+            SlAPI,
+            TestsAPI,
+            TutorsAPI,
+            UreAPI,
+        )
+        from okc_py.api.repos.appeals import AppealsAPI
+        from okc_py.api.repos.incidents import IncidentsAPI
+        from okc_py.api.repos.lines import LinesAPI
+        from okc_py.api.repos.sales import SalesAPI
+
+        # Initialize repositories
+        self.dossier = DossierAPI(self._client)
+        self.premium = PremiumAPI(self._client)
+        self.ure = UreAPI(self._client)
+        self.sl = SlAPI(self._client)
+        self.tests = TestsAPI(self._client)
+        self.tutors = TutorsAPI(self._client)
+        self.appeals = AppealsAPI(self._client)
+        self.sales = SalesAPI(self._client)
+        self.incidents = IncidentsAPI(self._client)
+        self.lines = LinesAPI(self._client)
+
+        self._initialized = True
+
+    def __getattr__(self, name: str):
+        """Get API repository by name.
+
+        Args:
+            name: Repository name (dossier, appeals, lines, etc.)
+
+        Returns:
+            API repository instance
+        """
+        self._ensure_initialized()
+        return object.__getattribute__(self, name)
+
+
+class _WSRouter:
+    """Router for WebSocket connections.
+
+    Provides access to WebSocket clients for real-time updates.
+    """
+
+    def __init__(self, client: Client):
+        """Initialize WebSocket router.
+
+        Args:
+            client: Authenticated OKC API client
+        """
+        self._client = client
+        self._lines = _LinesWSRouter(client)
+
+    @property
+    def lines(self) -> "_LinesWSRouter":
+        """Access Lines WebSocket clients.
+
+        Returns:
+            Lines WebSocket router
+
+        Example:
+            # Connect to NCK line
+            await client.ws.lines.nck.connect()
+            client.ws.lines.nck.on("rawData", handler)
+
+            # Connect to NTP1 line
+            await client.ws.lines.ntp1.connect()
+        """
+        return self._lines
+
+
+class _LinesWSRouter:
+    """Router for Lines WebSocket clients.
+
+    Provides access to different line WebSocket clients.
+    """
+
+    def __init__(self, client: Client):
+        """Initialize Lines WebSocket router.
+
+        Args:
+            client: Authenticated OKC API client
+        """
+        self._client = client
+        self._clients: dict[LineNamespace, LineWSClient] = {}
+
+    def __getattr__(self, line: str) -> LineWSClient:
+        """Get WebSocket client for a specific line.
+
+        Args:
+            line: Line name (ntp1, ntp2, nck)
+
+        Returns:
+            LineWSClient instance for the specified line
+
+        Raises:
+            ValueError: If line is not supported
+
+        Example:
+            ntp1_client = client.ws.lines.ntp1
+            nck_client = client.ws.lines.nck
+        """
+        if line not in LINE_NAMESPACES:
+            raise ValueError(
+                f"Unknown line: {line}. Available lines: {list(LINE_NAMESPACES.keys())}"
+            )
+
+        line_key: LineNamespace = line  # type: ignore
+
+        if line_key not in self._clients:
+            self._clients[line_key] = LineWSClient(self._client, line=line_key)
+
+        return self._clients[line_key]
 
 
 class OKC:
     """Main OKC API client.
 
     This is the primary entry point for interacting with the OKC API.
-    It provides access to all API categories through dedicated repository objects.
+    It provides access to all API categories through dedicated router objects.
 
     Example:
         ```python
@@ -26,9 +161,13 @@ class OKC:
 
         async def main():
             async with OKC() as okc:
-                # Get dossier information
-                dossier = await okc.dossier.get(...)
-                print(f"Dossier: {dossier}")
+                # HTTP API calls
+                appeals = await okc.api.appeals.get_filters()
+                print(f"Appeals: {appeals}")
+
+                # WebSocket connections
+                await okc.ws.lines.nck.connect()
+                okc.ws.lines.nck.on("rawData", handler)
 
         asyncio.run(main())
         ```
@@ -75,16 +214,21 @@ class OKC:
         # Initialize HTTP client
         self.client = Client(username=username, password=password, settings=settings)
 
-        # Initialize API repositories (will be set after connection)
-        self.dossier: DossierAPI | None = None
-        self.premium: PremiumAPI | None = None
-        self.ure: UreAPI | None = None
-        self.sl: SlAPI | None = None
-        self.tests: TestsAPI | None = None
-        self.tutors: TutorsAPI | None = None
-        self.appeals: AppealsAPI | None = None
-        self.sales: SalesAPI | None = None
-        self.incidents: IncidentsAPI | None = None
+        # Initialize routers
+        self._api = _APIRouter(self.client)
+        self._ws = _WSRouter(self.client)
+
+        # Keep old properties for backward compatibility (deprecated)
+        self.dossier = None
+        self.premium = None
+        self.ure = None
+        self.sl = None
+        self.tests = None
+        self.tutors = None
+        self.appeals = None
+        self.sales = None
+        self.incidents = None
+        self.lines = None
 
         logger.info("OKC API client initialized")
 
@@ -104,16 +248,20 @@ class OKC:
         """
         await self.client.connect()
 
-        # Initialize API repositories
-        self.dossier = DossierAPI(self.client)
-        self.premium = PremiumAPI(self.client)
-        self.ure = UreAPI(self.client)
-        self.sl = SlAPI(self.client)
-        self.tests = TestsAPI(self.client)
-        self.tutors = TutorsAPI(self.client)
-        self.appeals = AppealsAPI(self.client)
-        self.sales = SalesAPI(self.client)
-        self.incidents = IncidentsAPI(self.client)
+        # Initialize API router (creates all repositories)
+        self._api._ensure_initialized()
+
+        # For backward compatibility, set direct properties
+        self.dossier = self._api.dossier
+        self.premium = self._api.premium
+        self.ure = self._api.ure
+        self.sl = self._api.sl
+        self.tests = self._api.tests
+        self.tutors = self._api.tutors
+        self.appeals = self._api.appeals
+        self.sales = self._api.sales
+        self.incidents = self._api.incidents
+        self.lines = self._api.lines
 
         logger.info("OKC API repositories initialized")
 
@@ -129,6 +277,10 @@ class OKC:
         self.sl = None
         self.tests = None
         self.tutors = None
+        self.appeals = None
+        self.sales = None
+        self.incidents = None
+        self.lines = None
 
     @property
     def is_connected(self) -> bool:
@@ -139,6 +291,35 @@ class OKC:
     def is_authenticated(self) -> bool:
         """Check if the client is authenticated."""
         return self.client.is_authenticated
+
+    @property
+    def api(self) -> _APIRouter:
+        """Access HTTP API repositories.
+
+        Returns:
+            API router for accessing HTTP API repositories
+
+        Example:
+            # Access different API repositories
+            appeals = await okc.api.appeals.get_filters()
+            incidents = await okc.api.incidents.list()
+            sales_data = await okc.api.sales.get_report()
+        """
+        return self._api
+
+    @property
+    def ws(self) -> _WSRouter:
+        """Access WebSocket connections.
+
+        Returns:
+            WebSocket router for accessing WebSocket clients
+
+        Example:
+            # Connect to Lines WebSocket
+            await okc.ws.lines.nck.connect()
+            okc.ws.lines.nck.on("rawData", handler)
+        """
+        return self._ws
 
     async def test_connection(self) -> bool | None:
         """Test the OKC API connection and authentication.
@@ -151,7 +332,8 @@ class OKC:
                 await self.connect()
 
             # Test with a simple API call
-            if self.dossier:
+            self._api._ensure_initialized()
+            if self._api.dossier:
                 logger.info("OKC API connection test successful")
                 return True
 

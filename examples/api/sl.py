@@ -13,7 +13,7 @@ async def main():
         username=os.getenv("OKC_USERNAME"), password=os.getenv("OKC_PASSWORD")
     ) as client:
         # Получаем фильтры для чатов (включает данные об очередях)
-        filters = await client.sl.get_vq_chat_filter()
+        filters = await client.api.sl.get_vq_chat_filter()
         print(f"Filters: {filters}")
 
         # Извлекаем список VQ из очередей
@@ -24,7 +24,7 @@ async def main():
         # unit_id берется из filters.ntp_nck.unitId
         unit_id = filters.ntp_nck.unitId
 
-        sl_data = await client.sl.get_sl(
+        sl_data = await client.api.sl.get_sl(
             start_date="01.12.2025",
             stop_date="31.12.2025",
             units=unit_id,

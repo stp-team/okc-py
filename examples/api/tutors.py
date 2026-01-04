@@ -13,11 +13,11 @@ async def main():
         username=os.getenv("OKC_USERNAME"), password=os.getenv("OKC_PASSWORD")
     ) as client:
         # Получить доступные фильтры (для автоматического заполнения следующего запроса
-        graph_filters = await client.tutors.get_filters(division_id=2)
+        graph_filters = await client.api.tutors.get_filters(division_id=2)
         print(f"Graph filters: {graph_filters}")
 
         # Получить график наставников за промежуток времени
-        tutor_graph = await client.tutors.get_full_graph(
+        tutor_graph = await client.api.tutors.get_full_graph(
             division_id=2,
             start_date="1.12.2025",
             stop_date="1.1.2026",

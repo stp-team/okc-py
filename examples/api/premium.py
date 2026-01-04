@@ -16,14 +16,14 @@ async def main():
         division = "НЦК"
 
         # Получить премиум специалиста
-        specialist_premium = await client.premium.get_specialist_premium(
+        specialist_premium = await client.api.premium.get_specialist_premium(
             period=period, division=division, employees_id=["employee_id_here"]
         )
         print(f"Specialist premium: {specialist_premium}")
 
         # Получить премиум руководителя.
         # Возвращаемый ответ отличается от ответа метода выше
-        head_premium = await client.premium.get_head_premium(
+        head_premium = await client.api.premium.get_head_premium(
             period=period, division=division, employees_id=["employee_id_here"]
         )
         print(f"Head premium: {head_premium}")

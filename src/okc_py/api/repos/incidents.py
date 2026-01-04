@@ -1,7 +1,8 @@
 import logging
 
-from ..client import Client
-from ..models.incidents import IncidentDetail, LogFilters
+from okc_py.api.models.incidents import IncidentDetail, LogFilters
+from okc_py.client import Client
+
 from .base import BaseAPI
 
 logger = logging.getLogger(__name__)

@@ -12,10 +12,10 @@ async def main():
     async with OKC(
         username=os.getenv("OKC_USERNAME"), password=os.getenv("OKC_PASSWORD")
     ) as client:
-        filters = await client.sales.get_filters()
+        filters = await client.api.sales.get_filters()
         print(f"Filters: {filters}")
 
-        filters_by_date = await client.sales.get_filters_by_date(
+        filters_by_date = await client.api.sales.get_filters_by_date(
             "1.12.2025", "1.1.2026"
         )
         for head in filters_by_date.heads:
@@ -26,7 +26,7 @@ async def main():
         for emp in filters_by_date.employees:
             print(f"{emp.name} - Head: {emp.head_id}, Active to: {emp.active_to}")
 
-        sales = await client.sales.get_report(
+        sales = await client.api.sales.get_report(
             sales_types=["SaleMaterialsEns", "SaleTestDrive", "SalePPDRequests"],
             units=[7],
             start_date="01.12.2025",

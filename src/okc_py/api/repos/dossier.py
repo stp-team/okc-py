@@ -2,8 +2,9 @@ import logging
 
 from pydantic import TypeAdapter
 
-from ..client import Client
-from ..models.dossier import Employee, EmployeeData
+from okc_py.api.models.dossier import Employee, EmployeeData
+from okc_py.client import Client
+
 from .base import BaseAPI
 
 logger = logging.getLogger(__name__)
