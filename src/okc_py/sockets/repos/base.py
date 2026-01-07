@@ -1,4 +1,13 @@
-"""Base WebSocket client for OKC real-time APIs."""
+"""Base WebSocket client for OKC real-time updates.
+
+This module provides a low-level WebSocket connection handler that:
+- Manages connection lifecycle (connect/disconnect)
+- Handles authentication via cookies/session
+- Implements Engine.IO protocol (ping/pong, packet parsing)
+- Provides raw message interface (subclasses handle message parsing)
+
+Subclasses should implement service-specific message parsing and event handling.
+"""
 
 import asyncio
 import json
@@ -7,57 +16,92 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import Any
 
-from aiohttp import ClientSession, WSMessage, WSMsgType
+from aiohttp import WSMessage, WSMsgType
 
 from okc_py.client import Client
 
 logger = logging.getLogger(__name__)
 
 
-class BaseWebSocketClient(ABC):
-    """Base class for WebSocket connections to OKC.
+class BaseWS(ABC):
+    """Low-level WebSocket connection handler for OKC services.
 
-    Implements Engine.IO/WebSocket protocol for real-time updates.
-    Subclasses should define their namespace and auth logic.
+    This class handles ONLY:
+    - Connection management
+    - Authentication (cookies, session ID)
+    - Engine.IO protocol (ping/pong, packet parsing/sending)
+    - Raw message loop
+
+    Subclasses MUST:
+    - Define service_url property
+    - Implement on_message() for service-specific message handling
+    - Handle Pydantic model conversion
+    - Route events to registered handlers
     """
 
-    def __init__(self, client: Client, namespace: str):
+    def __init__(self, client: Client) -> None:
         """Initialize the WebSocket client.
 
         Args:
             client: Authenticated OKC API client
-            namespace: WebSocket namespace (e.g., "/ts-line-genesys-okcdb-ws")
         """
         self.client = client
-        self._namespace = namespace
-        self._ws: ClientSession.ws_connect | None = None
-        self._message_handlers: dict[str, list[Callable]] = {}
+        self._ws: Any = None
         self._listen_task: asyncio.Task | None = None
+        self._handlers: dict[str, list[Callable]] = {}
 
+    # Abstract properties that subclasses must define
+    @property
+    @abstractmethod
+    def service_url(self) -> str:
+        """Get the WebSocket service URL/namespace.
+
+        Subclasses must implement this to return their service-specific URL.
+
+        Example:
+            return "/ts-line-genesys-okcdb-ws"
+        """
+        raise NotImplementedError
+
+    # URL and Authentication
     @property
     def base_url(self) -> str:
         """Get base URL for WebSocket connection."""
         return self.client.settings.BASE_URL.rstrip("/")
 
-    @abstractmethod
-    async def _get_auth_cookies(self) -> str:
-        """Get authentication cookies for WebSocket connection.
-
-        Returns:
-            Cookie header string for WebSocket authentication
-        """
-        pass
-
-    async def _get_websocket_url(self) -> str:
-        """Form WebSocket URL for connection.
+    def _get_websocket_url(self) -> str:
+        """Build WebSocket URL for connection.
 
         Returns:
             Complete WebSocket URL with namespace and Engine.IO params
         """
         base = self.base_url.replace("/yii", "").replace("https://", "wss://")
-        return f"{base}{self._namespace}/?EIO=4&transport=websocket"
+        return f"{base}{self.service_url}/?EIO=4&transport=websocket"
 
-    async def _parse_engineio_packet(self, message: str) -> tuple[int, str, Any] | None:
+    def _get_auth_cookies(self) -> str:
+        """Get authentication cookies for WebSocket connection.
+
+        Returns:
+            Cookie header string for WebSocket authentication
+        """
+        return self.client.get_cookies()
+
+    def _get_session_id(self) -> str | None:
+        """Get PHPSESSID from cookies for WebSocket authorization.
+
+        Returns:
+            Session ID string or None if not found
+        """
+        session = self.client.get_session()
+        if not session:
+            return None
+        for cookie in session.cookie_jar:
+            if cookie.key == "PHPSESSID":
+                return cookie.value
+        return None
+
+    # Engine.IO Protocol (Low-level)
+    def _parse_engineio_packet(self, message: str) -> tuple[int, str, Any] | None:
         """Parse Engine.IO packet.
 
         Format: <packet_type>/<namespace>,<data>
@@ -100,15 +144,11 @@ class BaseWebSocketClient(ABC):
             if data:
                 try:
                     data = json.loads(data)
-                except json.JSONDecodeError as e:
-                    logger.debug(
-                        f"[WS] JSON parse error: {e}, data length: {len(data) if data else 0}"
-                    )
+                except json.JSONDecodeError:
                     pass
 
             return packet_type, namespace, data
-        except (ValueError, IndexError) as e:
-            logger.debug(f"[WS] Failed to parse packet: {e}, message: {message[:100]}")
+        except (ValueError, IndexError):
             return None
 
     async def _send_engineio_packet(
@@ -120,6 +160,9 @@ class BaseWebSocketClient(ABC):
             packet_type: Engine.IO packet type (0-6)
             data: Data payload to send
             namespace: Namespace for the packet
+
+        Raises:
+            RuntimeError: If WebSocket is not connected
         """
         if not self._ws:
             raise RuntimeError("WebSocket not connected")
@@ -135,25 +178,109 @@ class BaseWebSocketClient(ABC):
         logger.debug(f"[WS] Sending packet: {packet}")
         await self._ws.send_str(packet)
 
-    async def _get_session_id(self) -> str | None:
-        """Get PHPSESSID from cookies for WebSocket authorization.
+    # Connection Management (Internal)
+    async def _connect_websocket(self, ws_url: str) -> None:
+        """Establish WebSocket connection.
 
-        Returns:
-            Session ID string or None if not found
+        Args:
+            ws_url: WebSocket URL to connect to
+
+        Raises:
+            RuntimeError: If connection fails or session not initialized
         """
-        if not self.client._session:
-            return None
-        for cookie in self.client._session.cookie_jar:
-            if cookie.key == "PHPSESSID":
-                return cookie.value
-        return None
+        session = self.client.get_session()
+        if not session:
+            raise RuntimeError("Client session not initialized")
 
+        self._ws = await session.ws_connect(
+            ws_url,
+            headers={
+                "User-Agent": "okc-py-client",
+                "Cookie": self._get_auth_cookies(),
+                "Origin": self.base_url,
+            },
+        )
+
+        msg: WSMessage = await self._ws.receive()
+        logger.debug(f"[WS] Engine.IO open: {msg.type} = {msg.data}")
+
+        if msg.type == WSMsgType.CLOSED:
+            raise RuntimeError("WebSocket closed after connect")
+        elif msg.type == WSMsgType.ERROR:
+            raise RuntimeError(f"WebSocket error: {msg.data}")
+
+    async def _send_connect_packet(self) -> None:
+        """Send Socket.IO connect packet."""
+        connect_packet = f"40{self.service_url},"
+        logger.debug(f"[WS] Sending Socket.IO connect: {connect_packet}")
+        await self._ws.send_str(connect_packet)
+
+    async def _handle_connect_response(self) -> None:
+        """Handle response to Socket.IO connect packet.
+
+        Raises:
+            RuntimeError: If connection closed or error occurred
+        """
+        msg = await asyncio.wait_for(self._ws.receive(), timeout=5.0)
+        logger.debug(f"[WS] First message: {msg.type} = {msg.data}")
+
+        if msg.type == WSMsgType.TEXT and msg.data.startswith("40"):
+            json_part = msg.data.split(",", 1)[1] if "," in msg.data else "{}"
+            sid_data = json.loads(json_part)
+            if "sid" in sid_data:
+                logger.info(f"[WS] Session ID: {sid_data['sid']}")
+        elif msg.type == WSMsgType.CLOSED:
+            raise RuntimeError("WebSocket closed after connect packet")
+        elif msg.type == WSMsgType.ERROR:
+            raise RuntimeError(f"WebSocket error: {msg.data}")
+
+    async def _handle_second_message(self) -> None:
+        """Handle second message from server.
+
+        Raises:
+            RuntimeError: If connection closed or error occurred
+        """
+        msg = await asyncio.wait_for(self._ws.receive(), timeout=5.0)
+        logger.debug(f"[WS] Second message: {msg.type} = {msg.data}")
+
+        if msg.type == WSMsgType.CLOSED:
+            raise RuntimeError("WebSocket closed after session ID")
+        elif msg.type == WSMsgType.ERROR:
+            raise RuntimeError(f"WebSocket error: {msg.data}")
+
+    async def _send_authentication(self) -> None:
+        """Send authentication packet with session ID.
+
+        Raises:
+            RuntimeError: If WebSocket closed before sending auth
+        """
+        session_id = self._get_session_id()
+        if not session_id:
+            return
+
+        if self._ws.closed:
+            raise RuntimeError("WebSocket closed before auth send")
+
+        auth_packet = f'42{self.service_url},["id","{session_id}"]'
+        logger.debug(f"[WS] Sending auth: {auth_packet}")
+        await self._ws.send_str(auth_packet)
+        logger.info(f"[WS] Sent session ID: {session_id}")
+
+    async def _finalize_connection(self) -> None:
+        """Finalize WebSocket connection and start listening."""
+        msg = await asyncio.wait_for(self._ws.receive(), timeout=5.0)
+        logger.debug(f"[WS] Third message (authData): {msg.type} = {msg.data}")
+
+        self._listen_task = asyncio.create_task(self._listen_messages())
+        logger.info("[WS] Connected successfully")
+
+    # Message Loop
     async def _listen_messages(self) -> None:
-        """Listen for WebSocket messages and call registered handlers."""
+        """Listen for WebSocket messages and route to subclass handler."""
         try:
             async for msg in self._ws:
                 if msg.type == WSMsgType.TEXT:
-                    await self._handle_message(msg.data)
+                    await self._handle_raw_message(msg.data)
                 elif msg.type == WSMsgType.CLOSED:
                     logger.warning(
                         f"[WS] WebSocket closed by server. "
@@ -172,63 +299,71 @@ class BaseWebSocketClient(ABC):
         except Exception as e:
             logger.error(f"[WS] Error listening: {e}", exc_info=True)
 
-    async def _handle_message(self, message: str) -> None:
-        """Handle incoming WebSocket message.
+    async def _handle_raw_message(self, raw_message: str) -> None:
+        """Handle raw WebSocket message.
+
+        This method handles low-level protocol (ping/pong) and delegates
+        service-specific messages to subclass via on_message().
 
         Args:
-            message: Raw message string
+            raw_message: Raw message string from WebSocket
         """
-        if len(message) > 200:
-            logger.debug(f"[WS] Received ({len(message)} chars): {message[:100]}...")
-        else:
-            logger.debug(f"[WS] Received: {message}")
-
-        if message == "2":
+        # Handle Engine.IO ping (respond with pong)
+        if raw_message == "2":
             logger.debug("[WS] Ping received, sending pong")
             await self._send_engineio_packet(3)
             return
 
-        try:
-            parsed = await self._parse_engineio_packet(message)
-            if not parsed:
-                return
+        # Parse Engine.IO packet
+        parsed = self._parse_engineio_packet(raw_message)
+        if not parsed:
+            return
 
-            packet_type, namespace, data = parsed
+        packet_type, namespace, data = parsed
 
-            if packet_type == 4 and data:
-                if isinstance(data, list) and len(data) >= 1:
-                    event = data[0]
-                    event_data = data[1] if len(data) > 1 else None
+        # Packet type 4 = message, delegate to subclass
+        if packet_type == 4:
+            await self.on_message(data)
 
-                    if event_data and isinstance(event_data, dict):
-                        logger.info(
-                            f"[WS] Event: {event}, keys: {list(event_data.keys())[:10]}"
-                        )
-                    else:
-                        logger.info(f"[WS] Event: {event}, data: {event_data}")
+    # Abstract method for subclasses
+    @abstractmethod
+    async def on_message(self, data: Any) -> None:
+        """Handle service-specific message data.
 
-                    if event in self._message_handlers:
-                        for handler in self._message_handlers[event]:
-                            try:
-                                if asyncio.iscoroutinefunction(handler):
-                                    await handler(event_data)
-                                else:
-                                    handler(event_data)
-                            except Exception as e:
-                                logger.error(
-                                    f"[WS] Handler error for {event}: {e}",
-                                    exc_info=True,
-                                )
-        except Exception as e:
-            logger.error(
-                f"[WS] Error handling message: {e}, message: {message[:200]}",
-                exc_info=True,
-            )
+        Subclasses must implement this to:
+        - Parse service-specific message format
+        - Convert to Pydantic models if applicable
+        - Route events to registered handlers via self._emit_event()
 
-    async def connect(
-        self,
-        message_handler: Callable[[str, dict[str, Any]], None] | None = None,
-    ) -> None:
+        Args:
+            data: Parsed message data (from Engine.IO packet type 4)
+        """
+        raise NotImplementedError
+
+    # Event handling for subclasses
+    def _emit_event(self, event: str, event_data: Any) -> None:
+        """Emit event to all registered handlers.
+
+        Subclasses should call this to emit events after parsing messages.
+
+        Args:
+            event: Event name
+            event_data: Event data to pass to handlers
+        """
+        if event not in self._handlers:
+            return
+
+        for handler in self._handlers[event]:
+            try:
+                if asyncio.iscoroutinefunction(handler):
+                    asyncio.create_task(handler(event_data))
+                else:
+                    handler(event_data)
+            except Exception as e:
+                logger.error(f"[WS] Handler error for {event}: {e}", exc_info=True)
+
+    # Public API
+    async def connect(self) -> None:
         """Connect to WebSocket for real-time updates.
 
         Engine.IO protocol:
@@ -237,80 +372,21 @@ class BaseWebSocketClient(ABC):
         3. Server responds: 42/<namespace>,["connected"]
         4. Client sends: 42/<namespace>,["id","PHPSESSID"]
         5. Respond to ping (2) with pong (3)
-
-        Args:
-            message_handler: Optional handler for incoming messages.
-                Receives (event, data) as arguments.
         """
         if self._ws and not self._ws.closed:
             logger.warning("[WS] Already connected")
             return
 
-        ws_url = await self._get_websocket_url()
+        ws_url = self._get_websocket_url()
         logger.info(f"[WS] Connecting to: {ws_url}")
 
-        if message_handler:
-            self.on("message", lambda d: message_handler("message", d))
-
         try:
-            self._ws = await self.client._session.ws_connect(
-                ws_url,
-                headers={
-                    "User-Agent": "okc-py-client",
-                    "Cookie": await self._get_auth_cookies(),
-                    "Origin": self.base_url,
-                },
-            )
-
-            msg: WSMessage = await self._ws.receive()
-            logger.debug(f"[WS] Engine.IO open: {msg.type} = {msg.data}")
-
-            if msg.type == WSMsgType.CLOSED:
-                raise RuntimeError("WebSocket closed after connect")
-            elif msg.type == WSMsgType.ERROR:
-                raise RuntimeError(f"WebSocket error: {msg.data}")
-
-            connect_packet = f"40{self._namespace},"
-            logger.debug(f"[WS] Sending Socket.IO connect: {connect_packet}")
-            await self._ws.send_str(connect_packet)
-
-            msg = await asyncio.wait_for(self._ws.receive(), timeout=5.0)
-            logger.debug(f"[WS] First message: {msg.type} = {msg.data}")
-
-            if msg.type == WSMsgType.TEXT:
-                if msg.data.startswith("40"):
-                    json_part = msg.data.split(",", 1)[1] if "," in msg.data else "{}"
-                    sid_data = json.loads(json_part)
-                    if "sid" in sid_data:
-                        logger.info(f"[WS] Session ID: {sid_data['sid']}")
-            elif msg.type == WSMsgType.CLOSED:
-                raise RuntimeError("WebSocket closed after connect packet")
-            elif msg.type == WSMsgType.ERROR:
-                raise RuntimeError(f"WebSocket error: {msg.data}")
-
-            msg = await asyncio.wait_for(self._ws.receive(), timeout=5.0)
-            logger.debug(f"[WS] Second message: {msg.type} = {msg.data}")
-
-            if msg.type == WSMsgType.CLOSED:
-                raise RuntimeError("WebSocket closed after session ID")
-            elif msg.type == WSMsgType.ERROR:
-                raise RuntimeError(f"WebSocket error: {msg.data}")
-
-            session_id = await self._get_session_id()
-            if session_id:
-                if self._ws.closed:
-                    raise RuntimeError("WebSocket closed before auth send")
-                auth_packet = f'42{self._namespace},["id","{session_id}"]'
-                logger.debug(f"[WS] Sending auth: {auth_packet}")
-                await self._ws.send_str(auth_packet)
-                logger.info(f"[WS] Sent session ID: {session_id}")
-
-            msg = await asyncio.wait_for(self._ws.receive(), timeout=5.0)
-            logger.debug(f"[WS] Third message (authData): {msg.type} = {msg.data}")
-
-            self._listen_task = asyncio.create_task(self._listen_messages())
-            logger.info("[WS] Connected successfully")
-
+            await self._connect_websocket(ws_url)
+            await self._send_connect_packet()
+            await self._handle_connect_response()
+            await self._handle_second_message()
+            await self._send_authentication()
+            await self._finalize_connection()
         except Exception as e:
             logger.error(f"[WS] Connection error: {e}")
             await self.disconnect()
@@ -334,12 +410,12 @@ class BaseWebSocketClient(ABC):
         """Register handler for specific WebSocket event.
 
         Args:
-            event: Event name (e.g., 'rawData', 'rawIncidents')
+            event: Event name (e.g., 'rawData', 'rawIncidents', 'breakUpdate')
             handler: Handler function receiving event data
         """
-        if event not in self._message_handlers:
-            self._message_handlers[event] = []
-        self._message_handlers[event].append(handler)
+        if event not in self._handlers:
+            self._handlers[event] = []
+        self._handlers[event].append(handler)
 
     async def emit(self, event: str, data: dict[str, Any] | list | None = None) -> None:
         """Send event through WebSocket.
@@ -347,21 +423,25 @@ class BaseWebSocketClient(ABC):
         Args:
             event: Event name
             data: Data payload to send
+
+        Raises:
+            RuntimeError: If WebSocket is not connected
         """
         if not self._ws or self._ws.closed:
             raise RuntimeError("WebSocket not connected")
 
-        packet_data = [event]
+        packet_data: list[Any] = [event]
         if data is not None:
             packet_data.append(data)
 
-        await self._send_engineio_packet(4, packet_data, namespace=self._namespace)
+        await self._send_engineio_packet(4, packet_data, namespace=self.service_url)
 
     @property
     def is_connected(self) -> bool:
         """Check if WebSocket is connected."""
         return self._ws is not None and not self._ws.closed
 
+    # Context managers
     async def __aenter__(self):
         """Context manager for auto-connect."""
         await self.connect()

@@ -7,7 +7,7 @@ import os
 from dotenv import load_dotenv
 
 from okc_py import OKC
-from okc_py.sockets import RawData, RawIncidents
+from okc_py.sockets.models import RawData, RawIncidents
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO)
@@ -19,7 +19,6 @@ def _on_raw_data(data: dict) -> None:
         # Валидация данных через Pydantic модель
         raw_data = RawData(**data)
 
-        # Теперь можно использовать type-safe доступ к полям
         ready_agents = len(raw_data.agents.readyAgents)
         not_ready_agents = len(raw_data.agents.notReadyAgents)
         assign_agents = len(raw_data.agents.assignAgents)
@@ -34,11 +33,11 @@ def _on_raw_data(data: dict) -> None:
         print(
             f"[rawData] Агентов: {ready_agents} готово, "
             f"{not_ready_agents} не готово, "
-            f"{assign_agents} на назначении, "
+            f"{assign_agents} в назначении, "
             f"{break_agents} на перерыве"
         )
         print(
-            f"[rawData] Ожидающих: {total_waiting} | "
+            f"[rawData] В очереди: {total_waiting} | "
             f"В обработке: {cities_in_process} чатов"
         )
         print(f"[rawData] SL за день: {raw_data.daySl}%")
@@ -56,7 +55,7 @@ def _on_raw_data(data: dict) -> None:
 
 
 def _on_raw_incidents(data: dict) -> None:
-    """Обрабатывает инциденты с валидацией через Pydantic."""
+    """Обрабатывает аварии с валидацией через Pydantic."""
     try:
         # Валидация данных через Pydantic модель
         incidents = RawIncidents(**data)
@@ -99,9 +98,9 @@ async def main():
 
     async with OKC(
         username=os.getenv("OKC_USERNAME"), password=os.getenv("OKC_PASSWORD")
-    ) as okc:
+    ) as client:
         # Выберите линию для подключения: nck, ntp1, ntp2
-        line = okc.ws.nck  # или .ntp1, .ntp2
+        line = client.ws.lines.nck  # или .ntp1, .ntp2
 
         # Подключаемся к WebSocket
         await line.connect()
@@ -110,9 +109,7 @@ async def main():
         line.on("rawData", _on_raw_data)
         line.on("rawIncidents", _on_raw_incidents)
 
-        print("WebSocket подключен. Ожидание сообщений...")
         print(f"Статус подключения: {line.is_connected}")
-        print("Сервер автоматически отправляет обновления данных линий...")
         print("Нажмите Ctrl+C для остановки\n")
 
         # Держим соединение активным

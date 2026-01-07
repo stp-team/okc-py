@@ -5,6 +5,7 @@ import logging
 from .client import Client
 from .config import Settings
 from .exceptions import ConfigurationError
+from .sockets.repos.breaks import BreaksWSClient
 from .sockets.repos.lines import LINE_NAMESPACES, LineNamespace, LineWSClient
 
 logger = logging.getLogger(__name__)
@@ -85,6 +86,7 @@ class _WSRouter:
         """
         self._client = client
         self._lines = _LinesWSRouter(client)
+        self._breaks: BreaksWSClient | None = None
 
     @property
     def lines(self) -> "_LinesWSRouter":
@@ -102,6 +104,22 @@ class _WSRouter:
             await client.ws.lines.ntp1.connect()
         """
         return self._lines
+
+    @property
+    def breaks(self) -> BreaksWSClient:
+        """Access Breaks WebSocket client.
+
+        Returns:
+            Breaks WebSocket client
+
+        Example:
+            # Connect to breaks stream
+            await client.ws.breaks.connect()
+            client.ws.breaks.on("breakUpdate", handler)
+        """
+        if self._breaks is None:
+            self._breaks = BreaksWSClient(self._client)
+        return self._breaks
 
 
 class _LinesWSRouter:

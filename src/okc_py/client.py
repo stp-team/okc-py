@@ -209,3 +209,22 @@ class Client:
     def is_authenticated(self) -> bool:
         """Check if the client is authenticated."""
         return self._authenticated
+
+    def get_cookies(self) -> str:
+        """Get authentication cookies as a semicolon-separated string.
+
+        Returns:
+            Cookie header string with all session cookies, or empty string if
+            no session exists.
+        """
+        if not self._session:
+            return ""
+        return "; ".join(f"{c.key}={c.value}" for c in self._session.cookie_jar)
+
+    def get_session(self) -> ClientSession | None:
+        """Get the underlying aiohttp session.
+
+        Returns:
+            The ClientSession instance or None if not connected.
+        """
+        return self._session
