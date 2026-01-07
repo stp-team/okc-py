@@ -5,6 +5,11 @@ import logging
 from .client import Client
 from .config import Settings
 from .exceptions import ConfigurationError
+from .sockets.repos.breaks import (
+    BREAK_NAMESPACES,
+    BreakNamespace,
+    BreaksWSClient,
+)
 from .sockets.repos.lines import LINE_NAMESPACES, LineNamespace, LineWSClient
 
 logger = logging.getLogger(__name__)
@@ -85,6 +90,7 @@ class _WSRouter:
         """
         self._client = client
         self._lines = _LinesWSRouter(client)
+        self._breaks = _BreaksWSRouter(client)
 
     @property
     def lines(self) -> "_LinesWSRouter":
@@ -102,6 +108,23 @@ class _WSRouter:
             await client.ws.lines.ntp1.connect()
         """
         return self._lines
+
+    @property
+    def breaks(self) -> "_BreaksWSRouter":
+        """Access Breaks WebSocket clients.
+
+        Returns:
+            Breaks WebSocket router
+
+        Example:
+            # Connect to NCK breaks
+            await client.ws.breaks.ntp_nck.connect()
+            client.ws.breaks.ntp_nck.on("pageData", handler)
+
+            # Connect to NTP1 breaks
+            await client.ws.breaks.ntp_one.connect()
+        """
+        return self._breaks
 
 
 class _LinesWSRouter:
@@ -146,6 +169,54 @@ class _LinesWSRouter:
             self._clients[line_key] = LineWSClient(self._client, line=line_key)
 
         return self._clients[line_key]
+
+
+class _BreaksWSRouter:
+    """Router for Breaks WebSocket clients.
+
+    Provides access to different break WebSocket clients.
+    """
+
+    def __init__(self, client: Client):
+        """Initialize Breaks WebSocket router.
+
+        Args:
+            client: Authenticated OKC API client
+        """
+        self._client = client
+        self._clients: dict[BreakNamespace, BreaksWSClient] = {}
+
+    def __getattr__(self, namespace: str) -> BreaksWSClient:
+        """Get WebSocket client for a specific break namespace.
+
+        Args:
+            namespace: Break namespace (ntp_one, ntp_two, ntp_nck)
+
+        Returns:
+            BreaksWSClient instance for the specified namespace
+
+        Raises:
+            ValueError: If namespace is not supported
+
+        Example:
+            ntp_one_client = client.ws.breaks.ntp_one
+            ntp_nck_client = client.ws.breaks.ntp_nck
+        """
+        # Convert kebab-case to snake_case for lookup
+        namespace_key = namespace.replace("-", "_")
+
+        if namespace_key not in BREAK_NAMESPACES:
+            raise ValueError(
+                f"Unknown namespace: {namespace}. "
+                f"Available: {list(BREAK_NAMESPACES.keys())}"
+            )
+
+        break_key: BreakNamespace = namespace_key  # type: ignore
+
+        if break_key not in self._clients:
+            self._clients[break_key] = BreaksWSClient(self._client, namespace=break_key)
+
+        return self._clients[break_key]
 
 
 class OKC:

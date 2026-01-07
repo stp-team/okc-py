@@ -1,5 +1,16 @@
 """WebSocket clients and models for OKC real-time APIs."""
 
+from ..models.breaks import (
+    AuthMessage,
+    BreakLineData,
+    BreakUser,
+    DischargeUser,
+    PageData,
+    QueueOperator,
+    SimpleBreakLineData,
+    SimplePageData,
+    UserBreaks,
+)
 from ..models.lines import (
     Agent,
     Agents,
@@ -46,4 +57,13 @@ __all__ = [
     "IncidentStat",
     "RawIncidents",
     "AuthRoles",
+    "BreakLineData",
+    "BreakUser",
+    "DischargeUser",
+    "PageData",
+    "QueueOperator",
+    "SimpleBreakLineData",
+    "SimplePageData",
+    "AuthMessage",
+    "UserBreaks",
 ]

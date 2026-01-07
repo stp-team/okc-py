@@ -1,4 +1,4 @@
-"""HTTP API models for Lines."""
+"""Модели для ответов сокета линии."""
 
 from pydantic import BaseModel, Field
 
@@ -24,11 +24,6 @@ class LineStats(BaseModel):
     abandoned_calls: int = Field(description="Количество пропущенных звонков")
     avg_wait_time: float = Field(description="Среднее время ожидания")
     avg_talk_time: float = Field(description="Среднее время разговора")
-
-
-"""WebSocket event models for Lines API."""
-
-from pydantic import BaseModel, Field
 
 
 class QueueInfo(BaseModel):
