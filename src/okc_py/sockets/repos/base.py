@@ -1,14 +1,3 @@
-"""Base WebSocket client for OKC real-time updates.
-
-This module provides a low-level WebSocket connection handler that:
-- Manages connection lifecycle (connect/disconnect)
-- Handles authentication via cookies/session
-- Implements Engine.IO protocol (ping/pong, packet parsing)
-- Provides raw message interface (subclasses handle message parsing)
-
-Subclasses should implement service-specific message parsing and event handling.
-"""
-
 import asyncio
 import json
 import logging
@@ -24,73 +13,71 @@ logger = logging.getLogger(__name__)
 
 
 class BaseWS(ABC):
-    """Low-level WebSocket connection handler for OKC services.
+    """Низкоуровневый обработчик WebSocket'ов.
 
-    This class handles ONLY:
-    - Connection management
-    - Authentication (cookies, session ID)
-    - Engine.IO protocol (ping/pong, packet parsing/sending)
-    - Raw message loop
+    Этот класс обрабатывает только:
+    - Подключение к сокету
+    - Аутентификацию (cookies, session ID)
+    - Engine.IO протокол (ping/pong, парсинг пакетов)
+    - Петлю сообщений
 
-    Subclasses MUST:
-    - Define service_url property
-    - Implement on_message() for service-specific message handling
-    - Handle Pydantic model conversion
-    - Route events to registered handlers
+    Подклассы должны:
+    - Определять свойство service_url
+    - Определить метод on_message() для специфичного сервису обработчика сообщений
+    - Обрабатывать ответы Pydantic моделями
     """
 
     def __init__(self, client: Client) -> None:
-        """Initialize the WebSocket client.
+        """Инициализация клиента.
 
         Args:
-            client: Authenticated OKC API client
+            client: Авторизованный клиент OKC
         """
         self.client = client
         self._ws: Any = None
         self._listen_task: asyncio.Task | None = None
         self._handlers: dict[str, list[Callable]] = {}
 
-    # Abstract properties that subclasses must define
     @property
     @abstractmethod
     def service_url(self) -> str:
-        """Get the WebSocket service URL/namespace.
+        """Получить URL/namespace WebSocket сервиса.
 
-        Subclasses must implement this to return their service-specific URL.
+        Подклассы должны определить это свойство.
 
-        Example:
+        Пример:
             return "/ts-line-genesys-okcdb-ws"
         """
         raise NotImplementedError
 
-    # URL and Authentication
+    # URL и авторизация
     @property
     def base_url(self) -> str:
-        """Get base URL for WebSocket connection."""
+        """Получить базовый URL для подключения к WebSocket."""
         return self.client.settings.BASE_URL.rstrip("/")
 
     def _get_websocket_url(self) -> str:
-        """Build WebSocket URL for connection.
+        """Построить WebSocket URL для подключения.
 
         Returns:
-            Complete WebSocket URL with namespace and Engine.IO params
+            Готовый WebSocket URL с namespace и параметрами Engine.IO
         """
         base = self.base_url.replace("/yii", "").replace("https://", "wss://")
         return f"{base}{self.service_url}/?EIO=4&transport=websocket"
 
     def _get_auth_cookies(self) -> str:
-        """Get authentication cookies for WebSocket connection.
+        """Получить авторизованные cookies для WebSocket connection.
 
         Returns:
-            Cookie header string for WebSocket authentication
+            Строка заголовков cookie для авторизации в WebSocket
         """
         return self.client.get_cookies()
 
     def _get_session_id(self) -> str | None:
-        """Get PHPSESSID from cookies for WebSocket authorization.
+        """Получить PHPSESSID из cookies для авторизации.
 
         Returns:
-            Session ID string or None if not found
+            Строка Session ID или None если не найдено
         """
         session = self.client.get_session()
         if not session:
@@ -100,13 +87,14 @@ class BaseWS(ABC):
                 return cookie.value
         return None
 
-    # Engine.IO Protocol (Low-level)
-    def _parse_engineio_packet(self, message: str) -> tuple[int, str, Any] | None:
-        """Parse Engine.IO packet.
+    # Обработка пакетов Engine.IO
+    @staticmethod
+    def _parse_packet(message: str) -> tuple[int, str, Any] | None:
+        """Парсинг пакета Engine.IO.
 
-        Format: <packet_type>/<namespace>,<data>
+        Формат: <packet_type>/<namespace>,<data>
 
-        Engine.IO packet types:
+        Типы пакетов:
         0 - open
         1 - close
         2 - ping
@@ -116,10 +104,10 @@ class BaseWS(ABC):
         6 - noop
 
         Args:
-            message: Raw message string from WebSocket
+            message: Сырое сообщение из WebSocket
 
         Returns:
-            Tuple of (packet_type, namespace, data) or None if parse fails
+            Кортеж (packet_type, namespace, data) или None если парсинг пакета провалился
         """
         try:
             if not message:
@@ -151,18 +139,18 @@ class BaseWS(ABC):
         except (ValueError, IndexError):
             return None
 
-    async def _send_engineio_packet(
+    async def _send_packet(
         self, packet_type: int, data: Any = None, namespace: str = ""
     ) -> None:
-        """Send Engine.IO packet.
+        """Отправить пакет Engine.IO.
 
         Args:
-            packet_type: Engine.IO packet type (0-6)
-            data: Data payload to send
-            namespace: Namespace for the packet
+            packet_type: Тип пакета Engine.IO для отправки (0-6)
+            data: Полезная нагрузка
+            namespace: Namespace для пакета
 
         Raises:
-            RuntimeError: If WebSocket is not connected
+            RuntimeError: Если WebSocket не подключен
         """
         if not self._ws:
             raise RuntimeError("WebSocket not connected")
@@ -178,15 +166,15 @@ class BaseWS(ABC):
         logger.debug(f"[WS] Sending packet: {packet}")
         await self._ws.send_str(packet)
 
-    # Connection Management (Internal)
+    # Подключения (Internal)
     async def _connect_websocket(self, ws_url: str) -> None:
-        """Establish WebSocket connection.
+        """Установить WebSocket подключение.
 
         Args:
-            ws_url: WebSocket URL to connect to
+            ws_url: WebSocket URL для подключения
 
         Raises:
-            RuntimeError: If connection fails or session not initialized
+            RuntimeError: Если подключение провалено или сессия не инициализирована
         """
         session = self.client.get_session()
         if not session:
@@ -210,16 +198,16 @@ class BaseWS(ABC):
             raise RuntimeError(f"WebSocket error: {msg.data}")
 
     async def _send_connect_packet(self) -> None:
-        """Send Socket.IO connect packet."""
+        """Отправить Socket.IO пакет подключения."""
         connect_packet = f"40{self.service_url},"
         logger.debug(f"[WS] Sending Socket.IO connect: {connect_packet}")
         await self._ws.send_str(connect_packet)
 
     async def _handle_connect_response(self) -> None:
-        """Handle response to Socket.IO connect packet.
+        """Обработать ответный пакет Socket.IO при подключении.
 
         Raises:
-            RuntimeError: If connection closed or error occurred
+            RuntimeError: Если соединение закрыто или произошла ошибка
         """
         msg = await asyncio.wait_for(self._ws.receive(), timeout=5.0)
         logger.debug(f"[WS] First message: {msg.type} = {msg.data}")
@@ -235,10 +223,10 @@ class BaseWS(ABC):
             raise RuntimeError(f"WebSocket error: {msg.data}")
 
     async def _handle_second_message(self) -> None:
-        """Handle second message from server.
+        """Обрабатывает второе сообщение от сервера.
 
         Raises:
-            RuntimeError: If connection closed or error occurred
+            RuntimeError: Если соединение закрыто или произошла ошибка
         """
         msg = await asyncio.wait_for(self._ws.receive(), timeout=5.0)
         logger.debug(f"[WS] Second message: {msg.type} = {msg.data}")
@@ -249,10 +237,10 @@ class BaseWS(ABC):
             raise RuntimeError(f"WebSocket error: {msg.data}")
 
     async def _send_authentication(self) -> None:
-        """Send authentication packet with session ID.
+        """Отправляет пакет авторизации с session ID.
 
         Raises:
-            RuntimeError: If WebSocket closed before sending auth
+            RuntimeError: Если WebSocket закрыт до отправки авторизации
         """
         session_id = self._get_session_id()
         if not session_id:
@@ -267,16 +255,16 @@ class BaseWS(ABC):
         logger.info(f"[WS] Sent session ID: {session_id}")
 
     async def _finalize_connection(self) -> None:
-        """Finalize WebSocket connection and start listening."""
+        """Завершает подключение к WebSocket и начинает слушать сообщения."""
         msg = await asyncio.wait_for(self._ws.receive(), timeout=5.0)
         logger.debug(f"[WS] Third message (authData): {msg.type} = {msg.data}")
 
         self._listen_task = asyncio.create_task(self._listen_messages())
         logger.info("[WS] Connected successfully")
 
-    # Message Loop
+    # Цикл сообщений
     async def _listen_messages(self) -> None:
-        """Listen for WebSocket messages and route to subclass handler."""
+        """Слушает сообщения WebSocket и роутит в подклассовые обработчики."""
         try:
             async for msg in self._ws:
                 if msg.type == WSMsgType.TEXT:
@@ -300,55 +288,56 @@ class BaseWS(ABC):
             logger.error(f"[WS] Error listening: {e}", exc_info=True)
 
     async def _handle_raw_message(self, raw_message: str) -> None:
-        """Handle raw WebSocket message.
+        """Обработать сырое сообщение WebSocket.
 
-        This method handles low-level protocol (ping/pong) and delegates
-        service-specific messages to subclass via on_message().
+        Этот метод обрабатывает низкоуровневые сообщения и
+        делегирует специфичные сервисам сообщения в их подклассы
+        через on_message().
 
         Args:
-            raw_message: Raw message string from WebSocket
+            raw_message: Строка с сырым сообщением из WebSocket
         """
-        # Handle Engine.IO ping (respond with pong)
+        # Обрабатываем пинг Engine.IO
         if raw_message == "2":
             logger.debug("[WS] Ping received, sending pong")
-            await self._send_engineio_packet(3)
+            await self._send_packet(3)
             return
 
-        # Parse Engine.IO packet
-        parsed = self._parse_engineio_packet(raw_message)
+        # Парсим пакет Engine.IO
+        parsed = self._parse_packet(raw_message)
         if not parsed:
             return
 
         packet_type, namespace, data = parsed
 
-        # Packet type 4 = message, delegate to subclass
+        # Пакет с типом 4 = сообщение, делегируемое подклассам
         if packet_type == 4:
             await self.on_message(data)
 
-    # Abstract method for subclasses
+    # Абстрактный метод для подклассов
     @abstractmethod
     async def on_message(self, data: Any) -> None:
-        """Handle service-specific message data.
+        """Обрабатывает специфичные сообщения сервисов.
 
-        Subclasses must implement this to:
-        - Parse service-specific message format
-        - Convert to Pydantic models if applicable
-        - Route events to registered handlers via self._emit_event()
+        Сабклассы должны переопределить метод для:
+        - Парсинга сообщений в специфичном формате
+        - Конвертирования в Pydantic модели
+        - Роутинга ивентов в зарегистрированные обработчики через self._emit_event()
 
         Args:
-            data: Parsed message data (from Engine.IO packet type 4)
+            data: Анализируемые данные сообщения (из Engine.IO с типом пакета - 4)
         """
         raise NotImplementedError
 
-    # Event handling for subclasses
+    # Обработчик ивентов для подклассов
     def _emit_event(self, event: str, event_data: Any) -> None:
-        """Emit event to all registered handlers.
+        """Отправить событие всем зарегистрированным обработчикам.
 
-        Subclasses should call this to emit events after parsing messages.
+        Подклассы должны вызывать этот метод после парсинга сообщений.
 
         Args:
-            event: Event name
-            event_data: Event data to pass to handlers
+            event: Название ивента
+            event_data: Данные ивента для пуша в обработчики
         """
         if event not in self._handlers:
             return
@@ -364,14 +353,14 @@ class BaseWS(ABC):
 
     # Public API
     async def connect(self) -> None:
-        """Connect to WebSocket for real-time updates.
+        """Подключиться к WebSocket.
 
-        Engine.IO protocol:
-        1. Client sends: 40/<namespace>,
-        2. Server responds: 40/<namespace>,{"sid":"..."}
-        3. Server responds: 42/<namespace>,["connected"]
-        4. Client sends: 42/<namespace>,["id","PHPSESSID"]
-        5. Respond to ping (2) with pong (3)
+        Engine.IO протокол:
+        1. Клиент отправляет: 40/<namespace>,
+        2. Сервер отвечает: 40/<namespace>,{"sid":"..."}
+        3. Сервер отвечает: 42/<namespace>,["connected"]
+        4. Клиент отправляет: 42/<namespace>,["id","PHPSESSID"]
+        5. Отвечаем на пинг (2) - понг (3)
         """
         if self._ws and not self._ws.closed:
             logger.warning("[WS] Already connected")
@@ -393,7 +382,7 @@ class BaseWS(ABC):
             raise
 
     async def disconnect(self) -> None:
-        """Disconnect from WebSocket."""
+        """Отключение от WebSocket."""
         if self._listen_task and not self._listen_task.done():
             self._listen_task.cancel()
             try:
@@ -407,38 +396,19 @@ class BaseWS(ABC):
         self._ws = None
 
     def on(self, event: str, handler: Callable) -> None:
-        """Register handler for specific WebSocket event.
+        """Регистрирует обработчик для специфических ивентов WebSocket.
 
         Args:
-            event: Event name (e.g., 'rawData', 'rawIncidents', 'breakUpdate')
-            handler: Handler function receiving event data
+            event: Название ивента (например, 'rawData', 'rawIncidents', 'breakUpdate')
+            handler: Функция для обработки ивента
         """
         if event not in self._handlers:
             self._handlers[event] = []
         self._handlers[event].append(handler)
 
-    async def emit(self, event: str, data: dict[str, Any] | list | None = None) -> None:
-        """Send event through WebSocket.
-
-        Args:
-            event: Event name
-            data: Data payload to send
-
-        Raises:
-            RuntimeError: If WebSocket is not connected
-        """
-        if not self._ws or self._ws.closed:
-            raise RuntimeError("WebSocket not connected")
-
-        packet_data: list[Any] = [event]
-        if data is not None:
-            packet_data.append(data)
-
-        await self._send_engineio_packet(4, packet_data, namespace=self.service_url)
-
     @property
     def is_connected(self) -> bool:
-        """Check if WebSocket is connected."""
+        """Проверка подключен ли WebSocket."""
         return self._ws is not None and not self._ws.closed
 
     # Context managers

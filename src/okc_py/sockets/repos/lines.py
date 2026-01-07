@@ -1,4 +1,4 @@
-"""Lines WebSocket API for OKC real-time updates."""
+"""API вебсокетов для отслеживания состояния линий."""
 
 import logging
 from typing import Any, Literal

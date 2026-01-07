@@ -1,4 +1,4 @@
-"""Пример использования WebSocket API линий с типизацией через Pydantic модели."""
+"""Пример использования WebSocket API линий."""
 
 import asyncio
 import logging
