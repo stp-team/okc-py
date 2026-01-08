@@ -450,6 +450,117 @@ class RawIncidents(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+class CiscoAgent(BaseModel):
+    """Агент Cisco (ntp1/ntp2 lines)."""
+
+    userId: int = Field(default=0, description="ID пользователя")
+    headId: int = Field(default=0, description="ID руководителя")
+    userName: str = Field(default="", description="Имя пользователя")
+    finesseId: str = Field(default="", description="Finesse ID")
+    shiftPresence: int = Field(
+        default=0, description="Присутствие на смене (0/1)"
+    )
+    state: str = Field(default="", description="Состояние")
+    stateGroup: str = Field(
+        default="",
+        description="Группа состояния (ring/ready/talk/unknown)",
+    )
+    time: int = Field(default=0, description="Время в состоянии")
+    statusTime: int = Field(default=0, description="Время статуса")
+    shiftId: int = Field(default=0, description="ID смены")
+    shiftType: int = Field(default=0, description="Тип смены")
+    traineeTypeId: int | None = Field(default=None, description="Тип стажера")
+
+    model_config = {"populate_by_name": True}
+
+
+class CiscoAgents(BaseModel):
+    """Агенты Cisco по группам."""
+
+    ring: list[CiscoAgent] = Field(
+        default_factory=list, description="Агенты в состоянии звонка"
+    )
+    ready: list[CiscoAgent] = Field(
+        default_factory=list, description="Готовые агенты"
+    )
+    talk: list[CiscoAgent] = Field(
+        default_factory=list, description="Агенты на разговоре"
+    )
+    unknown: list[CiscoAgent] = Field(
+        default_factory=list, description="Агенты в неизвестном состоянии"
+    )
+
+    model_config = {"populate_by_name": True}
+
+
+class CiscoQueueInfo(BaseModel):
+    """Информация об очереди Cisco."""
+
+    name: str = Field(default="", description="Название очереди")
+    total: int = Field(default=0, description="Количество")
+
+    model_config = {"populate_by_name": True}
+
+
+class CiscoAssignment(BaseModel):
+    """Назначение агента."""
+
+    userId: int = Field(default=0, description="ID пользователя")
+    headId: int = Field(default=0, description="ID руководителя")
+    userName: str = Field(default="", description="Имя")
+    shiftPresence: int = Field(default=0, description="Присутствие")
+    assignmentId: int = Field(default=0, description="ID назначения")
+    state: str = Field(default="", description="Состояние")
+    comment: str | None = Field(default="", description="Комментарий")
+    startTime: str = Field(default="", description="Начало")
+    stopTime: str = Field(default="", description="Конец")
+    sortOrder: int = Field(default=0, description="Порядок")
+    shiftId: int = Field(default=0, description="ID смены")
+    source: str = Field(default="", description="Источник")
+
+    model_config = {"populate_by_name": True}
+
+
+class BossInfo(BaseModel):
+    """Информация о боссе."""
+
+    EMPLOYEE_ID: int = Field(default=0, description="Табельный номер")
+    FIO: str = Field(default="", description="ФИО")
+    EMAIL: str = Field(default="", description="Email")
+
+
+class CiscoRawData(BaseModel):
+    """Данные события rawData от WebSocket для ntp1/ntp2 линий.
+
+    Использует Cisco Finesse формат с другой структурой данных.
+    """
+
+    cisco: CiscoAgents = Field(
+        default_factory=CiscoAgents, description="Агенты Cisco"
+    )
+    talkingQueue: list[CiscoQueueInfo] = Field(
+        default_factory=list, description="Очереди разговоров"
+    )
+    waitingQueue: list[CiscoQueueInfo] = Field(
+        default_factory=list, description="Очереди ожидания"
+    )
+    assignments: list[CiscoAssignment] = Field(
+        default_factory=list, description="Назначения"
+    )
+    exampleGatherMessage: str = Field(default="", description="Пример сообщения")
+    lastMessage: LastMessage = Field(
+        default_factory=LastMessage, description="Последнее сообщение"
+    )
+    boss: BossInfo = Field(default_factory=BossInfo, description="Босс")
+    assistant: list = Field(default_factory=list, description="Ассистенты")
+    lineDuty: list[LineDuty] = Field(
+        default_factory=list, description="Дежурные"
+    )
+    serviceScheme: int = Field(default=0, description="Схема сервиса")
+
+    model_config = {"populate_by_name": True}
+
+
 class AuthRoles(BaseModel):
     """Данные события authRoles от WebSocket.
 

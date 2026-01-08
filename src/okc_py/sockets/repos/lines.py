@@ -61,12 +61,14 @@ class LineWSClient(BaseWS):
         Line events:
         - authRoles: User authentication and role information
         - rawIncidents: Incident data (priority incidents, new incidents, old incidents)
-        - rawData: Real-time line statistics and metrics (updated ~1 second)
+        - raw/rawData: Real-time line statistics and metrics (updated ~1 second)
+          Note: Server sends "raw" but we map it to "rawData" for consistency
 
         This method:
         1. Parses the event format: [event_name, event_data]
         2. Logs the event appropriately
-        3. Emits to registered handlers via self._emit_event()
+        3. Maps "raw" to "rawData" for consistency
+        4. Emits to registered handlers via self._emit_event()
 
         Args:
             data: Parsed event data (typically [event_name, event_data])
@@ -76,6 +78,10 @@ class LineWSClient(BaseWS):
 
         event = data[0]
         event_data = data[1] if len(data) > 1 else None
+
+        # Map "raw" event to "rawData" for consistency
+        if event == "raw":
+            event = "rawData"
 
         # Log line-specific events
         if event_data and isinstance(event_data, dict):

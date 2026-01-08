@@ -358,8 +358,8 @@ class BaseWS(ABC):
         Engine.IO протокол:
         1. Клиент отправляет: 40/<namespace>,
         2. Сервер отвечает: 40/<namespace>,{"sid":"..."}
-        3. Сервер отвечает: 42/<namespace>,["connected"]
-        4. Клиент отправляет: 42/<namespace>,["id","PHPSESSID"]
+        3. Клиент отправляет: 42/<namespace>,["id","PHPSESSID"]
+        4. Сервер отвечает: 42/<namespace>,["authName",...] и сразу данные
         5. Отвечаем на пинг (2) - понг (3)
         """
         if self._ws and not self._ws.closed:
@@ -370,14 +370,25 @@ class BaseWS(ABC):
         logger.info(f"[WS] Connecting to: {ws_url}")
 
         try:
+            logger.debug("[WS] Step 1: Connecting to WebSocket...")
             await self._connect_websocket(ws_url)
+
+            logger.debug("[WS] Step 2: Sending Socket.IO connect packet...")
             await self._send_connect_packet()
+
+            logger.debug("[WS] Step 3: Handling connect response...")
             await self._handle_connect_response()
-            await self._handle_second_message()
+
+            logger.debug("[WS] Step 4: Sending authentication...")
             await self._send_authentication()
-            await self._finalize_connection()
+
+            logger.debug("[WS] Step 5: Starting message listener...")
+            self._listen_task = asyncio.create_task(self._listen_messages())
+            logger.info("[WS] Connected successfully")
         except Exception as e:
+            import traceback
             logger.error(f"[WS] Connection error: {e}")
+            logger.error(f"[WS] Traceback: {traceback.format_exc()}")
             await self.disconnect()
             raise
 

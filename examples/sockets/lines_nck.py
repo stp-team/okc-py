@@ -100,7 +100,7 @@ async def main():
         username=os.getenv("OKC_USERNAME"), password=os.getenv("OKC_PASSWORD")
     ) as client:
         # Выберите линию для подключения: nck, ntp1, ntp2
-        line = client.ws.lines.nck  # или .ntp1, .ntp2
+        line = client.ws.lines.nck
 
         # Подключаемся к WebSocket
         await line.connect()
