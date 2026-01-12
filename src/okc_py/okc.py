@@ -36,7 +36,7 @@ class _APIRouter:
             return
 
         # Import API classes here to avoid circular imports
-        from okc_py.api import (
+        from .api import (
             DossierAPI,
             PremiumAPI,
             SlAPI,
@@ -44,10 +44,11 @@ class _APIRouter:
             TutorsAPI,
             UreAPI,
         )
-        from okc_py.api.repos.appeals import AppealsAPI
-        from okc_py.api.repos.incidents import IncidentsAPI
-        from okc_py.api.repos.lines import LinesAPI
-        from okc_py.api.repos.sales import SalesAPI
+        from .api.repos.appeals import AppealsAPI
+        from .api.repos.incidents import IncidentsAPI
+        from .api.repos.lines import LinesAPI
+        from .api.repos.lk import LkAPI
+        from .api.repos.sales import SalesAPI
 
         # Initialize repositories
         self.dossier = DossierAPI(self._client)
@@ -60,6 +61,7 @@ class _APIRouter:
         self.sales = SalesAPI(self._client)
         self.incidents = IncidentsAPI(self._client)
         self.lines = LinesAPI(self._client)
+        self.lk = LkAPI(self._client)
 
         self._initialized = True
 
@@ -224,24 +226,6 @@ class OKC:
 
     This is the primary entry point for interacting with the OKC API.
     It provides access to all API categories through dedicated router objects.
-
-    Example:
-        ```python
-        import asyncio
-        from okc_py import OKC
-
-        async def main():
-            async with OKC() as okc:
-                # HTTP API calls
-                appeals = await okc.api.appeals.get_filters()
-                print(f"Appeals: {appeals}")
-
-                # WebSocket connections
-                await okc.ws.lines.nck.connect()
-                okc.ws.lines.nck.on("rawData", handler)
-
-        asyncio.run(main())
-        ```
     """
 
     def __init__(
@@ -300,6 +284,7 @@ class OKC:
         self.sales = None
         self.incidents = None
         self.lines = None
+        self.lk = None
 
         logger.info("OKC API client initialized")
 

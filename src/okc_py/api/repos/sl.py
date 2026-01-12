@@ -1,8 +1,7 @@
 import logging
 
-from okc_py.api.models.sl import ReportData, SlRootModel
-from okc_py.client import Client
-
+from ...client import Client
+from ..models.sl import ReportData, SlRootModel
 from .base import BaseAPI
 
 logger = logging.getLogger(__name__)

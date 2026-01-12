@@ -70,6 +70,7 @@ extend-select = ["E", "F", "I", "B", "C90", "UP"]
 ignore = [
     "D107", # Allow missing docstring in __init__ if trivial
     "D104", # Allow missing docstrings in package modules
+    "E501", # Allow long lines for readability
 ]
 
 exclude = ["build", "dist", ".venv", "__pycache__"]

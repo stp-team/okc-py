@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from okc_py.client import Client
+from ... import Client
 
 
 class _ResponseWrapper:

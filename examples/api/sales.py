@@ -20,11 +20,13 @@ async def main():
         )
         for head in filters_by_date.heads:
             print(
-                f"{head.fullname} - Unit: {head.unit_id},"
+                f"{head.employee_fullname} - Unit: {head.unit_id},"
                 f" Subdivision: {head.subdivision_id}"
             )
         for emp in filters_by_date.employees:
-            print(f"{emp.fullname} - Head: {emp.head_id}, Active to: {emp.active_to}")
+            print(
+                f"{emp.employee_fullname} - Head: {emp.head_id}, Active to: {emp.active_to}"
+            )
 
         sales = await client.api.sales.get_report(
             sales_types=["SaleMaterialsEns", "SaleTestDrive", "SalePPDRequests"],
@@ -35,7 +37,7 @@ async def main():
 
         for sale in sales.data:
             print(
-                f"{sale.fullname} ({sale.unit_name}):"
+                f"{sale.employee_fullname} ({sale.unit_name}):"
                 f" {sale.materials_ens_name} in {sale.cost_type}"
                 f" at {sale.sale_date} with base cost {sale.base_cost}Р"
             )

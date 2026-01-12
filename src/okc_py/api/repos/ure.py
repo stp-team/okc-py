@@ -1,7 +1,9 @@
 import logging
 from datetime import datetime, timedelta
 
-from okc_py.api.models.ure import (
+from ...client import Client
+from ...misc.helpers import get_week_end_date, time_format
+from ..models.ure import (
     AHTDataRecord,
     CSIDataRecord,
     DelayDataRecord,
@@ -15,9 +17,6 @@ from okc_py.api.models.ure import (
     SalesPotentialDataRecord,
     TypedKPIResponse,
 )
-from okc_py.client import Client
-from okc_py.misc.helpers import get_week_end_date, time_format
-
 from .base import BaseAPI
 
 logger = logging.getLogger(__name__)

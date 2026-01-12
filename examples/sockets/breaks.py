@@ -64,7 +64,7 @@ def _on_page_data(data: PageData | SimplePageData) -> None:
         if break_users:
             print(f"\n  ☕ На перерыве ({len(break_users)}):")
             for user in break_users:
-                print(f"     {user.number}. {user.fullname} ({user.duration})")
+                print(f"     {user.number}. {user.employee_fullname} ({user.duration})")
         else:
             print("  ☕ На перерыве: никто")
 
@@ -74,7 +74,9 @@ def _on_page_data(data: PageData | SimplePageData) -> None:
             if discharge_users:
                 print(f"\n  📦 На разгрузке ({len(discharge_users)}):")
                 for user in discharge_users:
-                    print(f"     {user.number}. {user.fullname} ({user.duration})")
+                    print(
+                        f"     {user.number}. {user.employee_fullname} ({user.duration})"
+                    )
 
     # Парсим очередь операторов
     queue = data.parse_queue_operators()

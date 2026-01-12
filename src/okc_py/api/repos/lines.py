@@ -2,9 +2,8 @@
 
 import logging
 
-from okc_py.api.models.lines import LineMessage, UserData
-from okc_py.client import Client
-
+from ...client import Client
+from ..models.lines import LineMessage, UserData
 from .base import BaseAPI
 
 logger = logging.getLogger(__name__)

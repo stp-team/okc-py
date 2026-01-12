@@ -4,14 +4,14 @@ import asyncio
 import logging
 from typing import Any, Literal
 
-from okc_py.client import Client
-from okc_py.sockets.models import (
+from ...client import Client
+from ...sockets.models import (
     AuthMessage,
     PageData,
     SimplePageData,
     UserBreaks,
 )
-from okc_py.sockets.repos.base import BaseWS
+from ...sockets.repos.base import BaseWS
 
 logger = logging.getLogger(__name__)
 

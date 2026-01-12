@@ -457,9 +457,7 @@ class CiscoAgent(BaseModel):
     headId: int = Field(default=0, description="ID руководителя")
     userName: str = Field(default="", description="Имя пользователя")
     finesseId: str = Field(default="", description="Finesse ID")
-    shiftPresence: int = Field(
-        default=0, description="Присутствие на смене (0/1)"
-    )
+    shiftPresence: int = Field(default=0, description="Присутствие на смене (0/1)")
     state: str = Field(default="", description="Состояние")
     stateGroup: str = Field(
         default="",
@@ -480,9 +478,7 @@ class CiscoAgents(BaseModel):
     ring: list[CiscoAgent] = Field(
         default_factory=list, description="Агенты в состоянии звонка"
     )
-    ready: list[CiscoAgent] = Field(
-        default_factory=list, description="Готовые агенты"
-    )
+    ready: list[CiscoAgent] = Field(default_factory=list, description="Готовые агенты")
     talk: list[CiscoAgent] = Field(
         default_factory=list, description="Агенты на разговоре"
     )
@@ -535,9 +531,7 @@ class CiscoRawData(BaseModel):
     Использует Cisco Finesse формат с другой структурой данных.
     """
 
-    cisco: CiscoAgents = Field(
-        default_factory=CiscoAgents, description="Агенты Cisco"
-    )
+    cisco: CiscoAgents = Field(default_factory=CiscoAgents, description="Агенты Cisco")
     talkingQueue: list[CiscoQueueInfo] = Field(
         default_factory=list, description="Очереди разговоров"
     )
@@ -553,9 +547,7 @@ class CiscoRawData(BaseModel):
     )
     boss: BossInfo = Field(default_factory=BossInfo, description="Босс")
     assistant: list = Field(default_factory=list, description="Ассистенты")
-    lineDuty: list[LineDuty] = Field(
-        default_factory=list, description="Дежурные"
-    )
+    lineDuty: list[LineDuty] = Field(default_factory=list, description="Дежурные")
     serviceScheme: int = Field(default=0, description="Схема сервиса")
 
     model_config = {"populate_by_name": True}

@@ -3,8 +3,8 @@
 import logging
 from typing import Any, Literal
 
-from okc_py.client import Client
-from okc_py.sockets.repos.base import BaseWS
+from ...client import Client
+from ...sockets.repos.base import BaseWS
 
 logger = logging.getLogger(__name__)
 

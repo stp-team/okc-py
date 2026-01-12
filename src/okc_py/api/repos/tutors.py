@@ -1,9 +1,8 @@
 import logging
 from urllib.parse import urlencode
 
-from okc_py.api.models.tutors import GraphFiltersResponse, TutorGraphResponse
-from okc_py.client import Client
-
+from ...client import Client
+from ..models.tutors import GraphFiltersResponse, TutorGraphResponse
 from .base import BaseAPI
 
 logger = logging.getLogger(__name__)

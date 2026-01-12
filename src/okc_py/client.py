@@ -152,8 +152,10 @@ class Client:
                     req_kwargs.setdefault("headers", {})["Accept"] = (
                         "application/json, text/plain, */*"
                     )
+                    logger.debug(f"Request: {method} {url} | JSON: {json}")
                 else:
                     req_kwargs["data"] = data
+                    logger.debug(f"Request: {method} {url} | Data: {data}")
 
                 async with self._session.request(method, url, **req_kwargs) as response:
                     # Check for rate limiting

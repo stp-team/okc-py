@@ -7,7 +7,7 @@ from typing import Any
 
 from aiohttp import WSMessage, WSMsgType
 
-from okc_py.client import Client
+from ...client import Client
 
 logger = logging.getLogger(__name__)
 
@@ -387,6 +387,7 @@ class BaseWS(ABC):
             logger.info("[WS] Connected successfully")
         except Exception as e:
             import traceback
+
             logger.error(f"[WS] Connection error: {e}")
             logger.error(f"[WS] Traceback: {traceback.format_exc()}")
             await self.disconnect()

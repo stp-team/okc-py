@@ -15,12 +15,14 @@ async def main():
         # Получить лог линии
         day_log = await client.api.lines.get_day_log(line_app_id=3)
         for message in day_log:
-            print(f"[{message.active_from}] {message.fullname}: {message.message_text}")
+            print(
+                f"[{message.active_from}] {message.employee_fullname}: {message.message_text}"
+            )
 
         # Получить сотрудника
         user_data = await client.api.lines.get_user_data(employee_id=40472)
         if user_data:
-            print(f"Сотрудник {user_data.data.fullname}")
+            print(f"Сотрудник {user_data.data.employee_fullname}")
 
             if user_data.shift:
                 for shift in user_data.shift:

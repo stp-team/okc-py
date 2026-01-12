@@ -74,7 +74,9 @@ def _on_raw_incidents(data: dict) -> None:
         if incidents.priority:
             print("[Incidents] Приоритетные:")
             for inc in incidents.priority[:2]:
-                desc_preview = (inc.description[:40] + "...") if inc.description else "N/A"
+                desc_preview = (
+                    (inc.description[:40] + "...") if inc.description else "N/A"
+                )
                 print(f"  - ID: {inc.incId}: {desc_preview}")
 
     except Exception as e:
