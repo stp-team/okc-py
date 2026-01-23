@@ -5,6 +5,7 @@ from ...client import Client
 from ...misc.helpers import get_week_end_date, time_format
 from ..models.ure import (
     AHTDataRecord,
+    CSATDataRecord,
     CSIDataRecord,
     DelayDataRecord,
     FLRDataRecord,
@@ -32,6 +33,7 @@ class UreAPI(BaseAPI):
     }
     reports = {
         "НТП1": {
+            "CSAT": 95,
             "AHT": 16,
             "FLR": 59,  # С правками - 59, без - 23
             "CSI": 12,  # С правками - 12, без - 33
@@ -42,6 +44,7 @@ class UreAPI(BaseAPI):
             "PaidService": 62,
         },
         "НТП2": {
+            "CSAT": 95,
             "AHT": 16,
             "FLR": 36,  # С правками - 36, без - 24
             "CSI": 12,  # С правками - 12, без - 33
@@ -52,6 +55,7 @@ class UreAPI(BaseAPI):
             "PaidService": 64,
         },
         "НЦК": {
+            "CSAT": 93,
             "AHT": 11,
             "FLR": 25,
             "CSI": 10,  # С правками - 10, без - 32
@@ -71,6 +75,7 @@ class UreAPI(BaseAPI):
     def _get_report_model(report_type: str) -> type[KPIDataRecord]:
         """Get the appropriate Pydantic model for the report type."""
         report_models = {
+            "CSAT": CSATDataRecord,
             "AHT": AHTDataRecord,
             "FLR": FLRDataRecord,
             "CSI": CSIDataRecord,

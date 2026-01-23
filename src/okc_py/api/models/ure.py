@@ -58,6 +58,20 @@ class AHTDataRecord(BaseKPIRecord):
         return values
 
 
+class CSATDataRecord(BaseKPIRecord):
+    """Model for CSAT (Customer Satisfaction) data record."""
+
+    total_high_rated: int | None = Field(
+        None, alias="TOTAL_HIGH_RATED", description="Количество хороших оценок"
+    )
+    total_rated: int | None = Field(
+        None, alias="TOTAL_RATED", description="Общее количество оценок"
+    )
+    csat: float | None = Field(
+        None, alias="CSAT", description="Показатель удовлетворенности клиентов (CSAT)"
+    )
+
+
 class CSIDataRecord(BaseKPIRecord):
     total_rated_contacts: int = Field(
         ..., description="Общее количество оцененных контактов"
@@ -213,6 +227,7 @@ class HeaderDefinition(BaseModel):
 
 KPIDataRecord = (
     AHTDataRecord
+    | CSATDataRecord
     | FLRDataRecord
     | CSIDataRecord
     | POKDataRecord
