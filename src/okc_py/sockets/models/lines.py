@@ -30,16 +30,28 @@ class QueueInfo(BaseModel):
     """Информация об очереди в rawData."""
 
     current_waiting_calls: int = Field(
-        default=0, description="Текущее количество ожидающих звонков"
+        default=0,
+        alias="currentWaitingCalls",
+        description="Текущее количество ожидающих звонков",
     )
     total_entered_calls: int = Field(
-        default=0, description="Общее количество поступивших звонков"
+        default=0,
+        alias="totalEnteredCalls",
+        description="Общее количество поступивших звонков",
     )
-    max_wait_time: int = Field(default=0, description="Максимальное время ожидания")
-    dep_name: str = Field(default="", description="Название отдела")
-    table_order: int = Field(default=0, description="Порядковый номер в таблице")
-    sort_order: int = Field(default=0, description="Порядок сортировки")
-    duration_str: str = Field(default="", description="Длительность в формате ЧЧ:ММ:СС")
+    max_wait_time: int = Field(
+        default=0, alias="maxWaitTime", description="Максимальное время ожидания"
+    )
+    dep_name: str = Field(default="", alias="depName", description="Название отдела")
+    table_order: int = Field(
+        default=0, alias="tableOrder", description="Порядковый номер в таблице"
+    )
+    sort_order: int = Field(
+        default=0, alias="sortOrder", description="Порядок сортировки"
+    )
+    duration_str: str = Field(
+        default="", alias="durationStr", description="Длительность в формате ЧЧ:ММ:СС"
+    )
 
     model_config = {"populate_by_name": True}
 
@@ -50,7 +62,7 @@ class ChatCapacityInfo(BaseModel):
     available: int = Field(default=0, description="Доступно слотов")
     max: int = Field(default=0, description="Максимум слотов")
 
-    model_config = {"populate_by_name": True}
+    model_config = {"populate_by_name": True, "protected_names": ()}
 
 
 class WaitingChats(BaseModel):
@@ -408,8 +420,12 @@ class Incident(BaseModel):
     description: str | None = Field(default=None, description="Описание инцидента")
     priority: int | None = Field(default=None, description="Приоритет")
     status: str | None = Field(default=None, description="Статус")
-    created_at: str | None = Field(default=None, description="Время создания")
-    updated_at: str | None = Field(default=None, description="Время обновления")
+    created_at: str | None = Field(
+        default=None, alias="createdAt", description="Время создания"
+    )
+    updated_at: str | None = Field(
+        default=None, alias="updatedAt", description="Время обновления"
+    )
 
     @property
     def id(self) -> int:
