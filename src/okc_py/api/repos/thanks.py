@@ -64,7 +64,7 @@ class ThanksAPI(BaseAPI):
             statuses = []
 
         response = await self.post(
-            endpoint="/yii/appl/thanks/get-report",
+            endpoint="/appl/thanks/get-report",
             json={
                 "whomUnits": whom_units,
                 "whomSubdivisions": whom_subdivisions,
@@ -100,7 +100,7 @@ class ThanksAPI(BaseAPI):
             Список благодарностей, если нашли, иначе None
         """
         response = await self.post(
-            endpoint="/yii/appl/thanks/get-report",
+            endpoint="/appl/thanks/get-report",
             json=request.model_dump(by_alias=True, exclude_none=True),
         )
 
