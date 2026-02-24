@@ -80,7 +80,7 @@ class SpecialistPremiumData(BasePremiumData):
 
     # Специфичные для специалистов поля
     total_chats: int | None = Field(None, alias="TOTAL_CHATS")
-    raw_premium: int | None = Field(None, alias="RAW_PREMIUM")
+    raw_premium: float | None = Field(None, alias="RAW_PREMIUM")
 
 
 class HeadPremiumData(BasePremiumData):
