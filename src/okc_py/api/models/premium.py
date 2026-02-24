@@ -31,6 +31,8 @@ class BasePremiumData(BaseModel):
     gok_normative: float | None = Field(None, alias="GOK_NORMATIVE")
     gok_pers_normative: float | None = Field(None, alias="PERS_GOK_NORMATIVE")
     gok_normative_rate: float | None = Field(None, alias="NORM_GOK")
+    gok_renormative_rate: float | None = Field(None, alias="RENORM_GOK")
+    gok_weight: float | None = Field(None, alias="GOK_WEIGHT")
     gok_premium: float = Field(..., alias="PERC_GOK")
 
     # Спец. цель
@@ -58,17 +60,27 @@ class SpecialistPremiumData(BasePremiumData):
     csat_normative: float | None = Field(None, alias="CSAT_NORMATIVE")
     csat_pers_normative: float | None = Field(None, alias="PERS_CSAT_NORMATIVE")
     csat_normative_rate: float | None = Field(None, alias="NORM_CSAT")
+    csat_renormative_rate: float | None = Field(None, alias="RENORM_CSAT")
+    csat_weight: float | None = Field(None, alias="CSAT_WEIGHT")
     csat_premium: float | None = Field(None, alias="PERC_CSAT")
+
+    # CSI Response
+    csi_response: float | None = Field(None, alias="CSI_RESPONSE")
+    csi_response_normative: float | None = Field(None, alias="CSI_RESPONSE_NORMATIVE")
+    csi_response_normative_rate: float | None = Field(None, alias="NORM_CSI_RESPONSE")
 
     # AHT (Average Handle Time)
     aht: float | None = Field(None, alias="AHT")
     aht_normative: float | None = Field(None, alias="AHT_NORMATIVE")
     aht_pers_normative: float | None = Field(None, alias="PERS_AHT_NORMATIVE")
     aht_normative_rate: float | None = Field(None, alias="NORM_AHT")
+    aht_renormative_rate: float | None = Field(None, alias="RENORM_AHT")
+    aht_weight: float | None = Field(None, alias="AHT_WEIGHT")
     aht_premium: float | None = Field(None, alias="PERC_AHT")
 
     # Специфичные для специалистов поля
     total_chats: int | None = Field(None, alias="TOTAL_CHATS")
+    raw_premium: int | None = Field(None, alias="RAW_PREMIUM")
 
 
 class HeadPremiumData(BasePremiumData):
@@ -79,6 +91,8 @@ class HeadPremiumData(BasePremiumData):
     flr_normative: float | None = Field(None, alias="FLR_NORMATIVE")
     flr_pers_normative: float | None = Field(None, alias="PERS_FLR_NORMATIVE")
     flr_normative_rate: float | None = Field(None, alias="NORM_FLR")
+    flr_renormative_rate: float | None = Field(None, alias="RENORM_FLR")
+    flr_weight: float | None = Field(None, alias="FLR_WEIGHT")
     flr_premium: float | None = Field(None, alias="PERC_FLR")
 
     # AHT (Average Handle Time)
@@ -86,7 +100,12 @@ class HeadPremiumData(BasePremiumData):
     aht_normative: float | None = Field(None, alias="AHT_NORMATIVE")
     aht_pers_normative: float | None = Field(None, alias="PERS_AHT_NORMATIVE")
     aht_normative_rate: float | None = Field(None, alias="NORM_AHT")
+    aht_renormative_rate: float | None = Field(None, alias="RENORM_AHT")
+    aht_weight: float | None = Field(None, alias="AHT_WEIGHT")
     aht_premium: float | None = Field(None, alias="PERC_AHT")
+
+    # Специфичные для руководителей поля
+    raw_premium: float | None = Field(None, alias="RAW_PREMIUM")
 
 
 class HeadPremiumResponse(BaseModel):
