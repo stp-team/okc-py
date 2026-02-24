@@ -48,7 +48,7 @@ class BasePremiumData(BaseModel):
 
     # Результаты
     head_adjust_premium: float | None = Field(None, alias="HEAD_ADJUST")
-    total_premium: float = Field(..., alias="TOTAL_PREMIUM")
+    total_premium: float | None = Field(None, alias="TOTAL_PREMIUM")
     commentary: str | None = Field(None, alias="COMMENTARY")
 
 
