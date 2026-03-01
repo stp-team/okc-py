@@ -114,6 +114,33 @@ class HeadPremiumResponse(BaseModel):
     premium: list[HeadPremiumData] = Field(...)
     not_eligible: dict[str, list[str]] = Field(..., alias="notEligible")
 
+    @classmethod
+    def model_validate(
+        cls,
+        obj: Any,
+        *,
+        strict: bool | None = None,
+        extra: "ExtraValues | None" = None,  # type: ignore[valid-type]
+        from_attributes: bool | None = None,
+        context: Any | None = None,
+        by_alias: bool | None = None,
+        by_name: bool | None = None,
+    ):
+        """Validate from API response data"""
+        if isinstance(obj, dict):
+            # Handle case where notEligible is an empty list instead of dict
+            if "notEligible" in obj and isinstance(obj["notEligible"], list):
+                obj = {**obj, "notEligible": {}}
+        return super().model_validate(
+            obj,
+            strict=strict,
+            extra=extra,
+            from_attributes=from_attributes,
+            context=context,
+            by_alias=by_alias,
+            by_name=by_name,
+        )
+
 
 class SpecialistPremiumResponse(BaseModel):
     """Response model for specialist premium data"""
