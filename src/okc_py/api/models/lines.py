@@ -69,7 +69,7 @@ class UserInfo(BaseModel):
         division_id: Division ID
     """
 
-    birthday: str = Field(alias="BIRTHDAY", description="Дата рождения")
+    #birthday: str = Field(alias="BIRTHDAY", description="Дата рождения")
     photo: str = Field(alias="PHOTO", description="Фотография")
     phone: str = Field(alias="PHONE", description="Телефон")
     social: str = Field(alias="SOCIAL", description="Социальная сеть")
