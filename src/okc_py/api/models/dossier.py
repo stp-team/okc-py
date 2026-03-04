@@ -31,9 +31,9 @@ class EmployeeInfo(BaseModel):
     transfer_date: str | None = Field(
         alias="TRANSFER_DATE", description="День изменения должности сотрудника"
     )
-    birthday: str | None = Field(
-        alias="BIRTHDAY", description="День рождения сотрудника"
-    )
+    # birthday: str | None = Field(
+    #     alias="BIRTHDAY", description="День рождения сотрудника"
+    # )
     photo: str | None = Field(alias="PHOTO", description="Фотография сотрудника")
     city: str = Field(alias="CITY_NAME", description="Город сотрудника")
     trainee_id: int | None = Field(
